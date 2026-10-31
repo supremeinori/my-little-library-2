@@ -22,7 +22,7 @@ else:
 
 new_css = f'''/* ─────────────────────────────────────────────────────────────
    My Little Library — Black & White Editorial Stylesheet
-   Pure monochrome, typography-led, manga ink-hatch signature design system.
+   Pure monochrome, typography-led, manga ink signature design system.
    ───────────────────────────────────────────────────────────── */
 
 /* ── Typography: Bundled Offline Open Sans ── */
@@ -61,13 +61,11 @@ new_css = f'''/* ─────────────────────
   --text-muted:       #767676;
   --text-inverse:     #ffffff;
 
-  /* Manga Ink Hatching & Shadow Tokens (Light: Black Ink Strokes on White Paper) */
-  --hatch-stroke:        rgba(0, 0, 0, 0.18);
-  --hatch-stroke-dense:  rgba(0, 0, 0, 0.50);
-  --hatch-shadow-color:  rgba(0, 0, 0, 0.65);
-  --manga-offset-x:      6px;
-  --manga-offset-y:      6px;
-  --dock-bg:             rgba(255, 255, 255, 0.94);
+  /* Manga Ink Hatching & Shadow Tokens */
+  --hatch-stroke:        rgba(0, 0, 0, 0.20);
+  --hatch-stroke-dense:  rgba(0, 0, 0, 0.55);
+  --manga-shadow-color:  #111111;
+  --dock-bg:             #ffffff;
   --dock-border:         #111111;
 
   --header-h:         60px;
@@ -92,13 +90,11 @@ new_css = f'''/* ─────────────────────
   --text-muted:       #70707e;
   --text-inverse:     #0e0e11;
 
-  /* Manga Ink Hatching & Shadow Tokens (Dark: White Ink Strokes Inverted on Dark Paper) */
-  --hatch-stroke:        rgba(255, 255, 255, 0.20);
-  --hatch-stroke-dense:  rgba(255, 255, 255, 0.55);
-  --hatch-shadow-color:  rgba(255, 255, 255, 0.45);
-  --manga-offset-x:      6px;
-  --manga-offset-y:      6px;
-  --dock-bg:             rgba(22, 22, 26, 0.94);
+  /* Manga Ink Hatching & Shadow Tokens (Inverted Dark Mode) */
+  --hatch-stroke:        rgba(255, 255, 255, 0.22);
+  --hatch-stroke-dense:  rgba(255, 255, 255, 0.60);
+  --manga-shadow-color:  #ffffff;
+  --dock-bg:             #16161a;
   --dock-border:         #ffffff;
 }}
 
@@ -115,12 +111,10 @@ new_css = f'''/* ─────────────────────
     --text-muted:       #70707e;
     --text-inverse:     #0e0e11;
 
-    --hatch-stroke:        rgba(255, 255, 255, 0.20);
-    --hatch-stroke-dense:  rgba(255, 255, 255, 0.55);
-    --hatch-shadow-color:  rgba(255, 255, 255, 0.45);
-    --manga-offset-x:      6px;
-    --manga-offset-y:      6px;
-    --dock-bg:             rgba(22, 22, 26, 0.94);
+    --hatch-stroke:        rgba(255, 255, 255, 0.22);
+    --hatch-stroke-dense:  rgba(255, 255, 255, 0.60);
+    --manga-shadow-color:  #ffffff;
+    --dock-bg:             #16161a;
     --dock-border:         #ffffff;
   }}
 }}
@@ -158,7 +152,7 @@ input, select, textarea {{
   display: none !important;
 }}
 
-/* ── Manga Cross-Hatch & Shadow System (Editorial Screen-Tone) ── */
+/* ── Manga Cross-Hatch & Screen-Tone Pattern ── */
 .ink-hatch {{
   background-image: 
     repeating-linear-gradient(45deg, var(--hatch-stroke) 0, var(--hatch-stroke) 1px, transparent 1px, transparent 6px),
@@ -171,41 +165,15 @@ input, select, textarea {{
     repeating-linear-gradient(-45deg, var(--hatch-stroke-dense) 0, var(--hatch-stroke-dense) 1.5px, transparent 1.5px, transparent 4px);
 }}
 
-/* Authentic Manga Screen-Tone Drop Shadow with Pen Outline */
-.manga-shadow,
-.book-card,
-.desk-card,
-.ledger-item {{
-  position: relative;
+/* Crisp Graphic Manga Shadows */
+.manga-shadow {{
+  box-shadow: 4px 4px 0px var(--manga-shadow-color);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }}
 
-.manga-shadow::after,
-.book-card::after,
-.desk-card::after,
-.ledger-item::after {{
-  content: '';
-  position: absolute;
-  top: var(--manga-offset-y, 6px);
-  left: var(--manga-offset-x, 6px);
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  z-index: -1;
-  background-color: var(--surface-muted);
-  background-image: 
-    repeating-linear-gradient(45deg, var(--hatch-shadow-color) 0, var(--hatch-shadow-color) 1.5px, transparent 1.5px, transparent 5px),
-    repeating-linear-gradient(-45deg, var(--hatch-shadow-color) 0, var(--hatch-shadow-color) 1.5px, transparent 1.5px, transparent 5px);
-  border: 1px solid var(--border-dark);
-  pointer-events: none;
-  transition: top 0.16s ease, left 0.16s ease, transform 0.16s ease;
-}}
-
-.book-card:hover::after,
-.desk-card:hover::after,
-.ledger-item:hover::after,
-.manga-shadow:hover::after {{
-  top: calc(var(--manga-offset-y, 6px) + 2px);
-  left: calc(var(--manga-offset-x, 6px) + 2px);
+.manga-shadow:hover {{
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--manga-shadow-color);
 }}
 
 /* ── Top Application Header with Dynamic Logo ── */
@@ -217,8 +185,8 @@ input, select, textarea {{
   align-items: center;
   justify-content: space-between;
   padding: 12px 36px;
-  background: var(--bg);
-  border-bottom: 1.5px solid var(--border-dark);
+  background: var(--surface);
+  border-bottom: 2px solid var(--border-dark);
 }}
 
 .header-brand {{
@@ -280,20 +248,21 @@ input, select, textarea {{
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  --manga-offset-x: 3px;
-  --manga-offset-y: 3px;
-  transition: transform 0.12s ease;
+  box-shadow: 3px 3px 0px var(--manga-shadow-color);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }}
 
 .header-add-btn:hover {{
   transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px var(--manga-shadow-color);
 }}
 
 .header-add-btn:active {{
   transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--manga-shadow-color);
 }}
 
-/* ── Floating Bottom Pill Dock Navigation ── */
+/* ── Floating Bottom Pill Dock Navigation (100% Solid & Clean) ── */
 .bottom-dock-wrap {{
   position: fixed;
   bottom: 24px;
@@ -313,19 +282,17 @@ input, select, textarea {{
   gap: 6px;
   padding: 6px 10px;
   background: var(--dock-bg);
-  border: 1.5px solid var(--dock-border);
+  border: 2px solid var(--dock-border);
   border-radius: var(--radius-pill);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  --manga-offset-x: 5px;
-  --manga-offset-y: 5px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16), 0 3px 8px rgba(0, 0, 0, 0.08);
+  isolation: isolate;
 }}
 
 .dock-tab {{
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: var(--radius-pill);
   border: 1px solid transparent;
   background: transparent;
@@ -333,6 +300,7 @@ input, select, textarea {{
   font-size: 13px;
   font-weight: 600;
   transition: all 0.16s ease;
+  white-space: nowrap;
 }}
 
 .dock-tab:hover {{
@@ -344,11 +312,12 @@ input, select, textarea {{
   color: var(--text-inverse);
   background: var(--border-dark);
   border-color: var(--border-dark);
+  font-weight: 700;
 }}
 
 .dock-divider {{
   width: 1px;
-  height: 20px;
+  height: 22px;
   background: var(--border);
   margin: 0 4px;
 }}
@@ -357,8 +326,8 @@ input, select, textarea {{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1.5px solid var(--border-dark);
   background: var(--border-dark);
@@ -374,18 +343,18 @@ input, select, textarea {{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--surface-subtle);
   color: var(--text);
   transition: background 0.15s ease, transform 0.15s ease;
 }}
 
 .dock-theme-btn:hover {{
   background: var(--surface-muted);
-  transform: scale(1.05);
+  transform: scale(1.06);
 }}
 
 .dock-theme-icon--sun {{
@@ -446,17 +415,6 @@ input, select, textarea {{
   border-bottom: 2px solid var(--border-dark);
   padding-bottom: 10px;
   margin-bottom: 24px;
-  position: relative;
-}}
-
-.section-title-wrap::after {{
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background-image: repeating-linear-gradient(45deg, var(--hatch-stroke) 0, var(--hatch-stroke) 1px, transparent 1px, transparent 6px);
 }}
 
 .section-heading {{
@@ -494,13 +452,13 @@ input, select, textarea {{
   justify-content: space-between;
   gap: 16px;
   border-radius: var(--radius);
-  --manga-offset-x: 5px;
-  --manga-offset-y: 5px;
-  transition: transform 0.16s ease;
+  box-shadow: 4px 4px 0px var(--manga-shadow-color);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }}
 
 .desk-card:hover {{
   transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--manga-shadow-color);
 }}
 
 .desk-card-body {{
@@ -530,31 +488,29 @@ input, select, textarea {{
   padding-top: 14px;
 }}
 
-/* ── Dashboard: Stats Ledger Strip ── */
+/* ── Dashboard: Stats Ledger Strip (Clean & Crisp) ── */
 .stats-ledger {{
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  background: transparent;
-  border: none;
+  border: 2px solid var(--border-dark);
+  background: var(--surface);
+  border-radius: var(--radius);
   margin-bottom: 40px;
+  box-shadow: 4px 4px 0px var(--manga-shadow-color);
+  overflow: hidden;
 }}
 
 .ledger-item {{
   padding: 22px 24px;
-  border: 1.5px solid var(--border-dark);
-  background: var(--surface);
-  border-radius: var(--radius);
+  border-right: 1.5px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  --manga-offset-x: 4px;
-  --manga-offset-y: 4px;
-  transition: transform 0.16s ease;
+  background: var(--surface);
 }}
 
-.ledger-item:hover {{
-  transform: translate(-1px, -1px);
+.ledger-item:last-child {{
+  border-right: none;
 }}
 
 .ledger-label {{
@@ -645,13 +601,14 @@ input, select, textarea {{
   align-items: center;
   padding: 12px 16px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }}
 
 .recent-row:hover {{
   border-color: var(--border-dark);
+  box-shadow: 2px 2px 0px var(--manga-shadow-color);
 }}
 
 .recent-titles {{
@@ -762,14 +719,16 @@ input, select, textarea {{
   display: flex;
   flex-direction: column;
   border-radius: var(--radius);
-  transition: transform 0.16s ease, border-color 0.16s ease;
+  box-shadow: 4px 4px 0px var(--manga-shadow-color);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
   min-width: 0;
-  --manga-offset-x: 6px;
-  --manga-offset-y: 6px;
+  position: relative;
+  isolation: isolate;
 }}
 
 .book-card:hover {{
   transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--manga-shadow-color);
 }}
 
 /* Physical 3D Book Presentation */
@@ -1112,16 +1071,17 @@ input, select, textarea {{
 .btn-primary {{
   background: var(--border-dark);
   color: var(--text-inverse);
-  --manga-offset-x: 3px;
-  --manga-offset-y: 3px;
+  box-shadow: 3px 3px 0px var(--manga-shadow-color);
 }}
 
 .btn-primary:hover {{
   transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px var(--manga-shadow-color);
 }}
 
 .btn-primary:active {{
   transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--manga-shadow-color);
 }}
 
 .btn-secondary {{
@@ -1145,7 +1105,7 @@ input, select, textarea {{
   font-size: 12px;
 }}
 
-/* ── Modal Dialogs with Manga Shadows ── */
+/* ── Modal Dialogs with Clean Manga Shadows ── */
 .modal-backdrop {{
   position: fixed;
   inset: 0;
@@ -1168,8 +1128,7 @@ input, select, textarea {{
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
-  --manga-offset-x: 8px;
-  --manga-offset-y: 8px;
+  box-shadow: 8px 8px 0px var(--manga-shadow-color);
 }}
 
 .modal--sm {{
@@ -1453,4 +1412,4 @@ input, select, textarea {{
 with open(style_path, "w", encoding="utf-8") as f:
     f.write(new_css)
 
-print("style.css rewritten successfully. Length:", len(new_css))
+print("style.css rewritten with clean solid dock & manga panel shadows.")

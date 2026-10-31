@@ -159,7 +159,7 @@ function renderDashboard() {
     activeReadingSection.classList.remove('hidden');
     activeBooks.forEach(book => {
       const card = document.createElement('article');
-      card.className = 'desk-card manga-shadow';
+      card.className = 'desk-card';
       const displayTitle = formatDisplayTitle(book.title);
 
       card.innerHTML = `
@@ -286,7 +286,7 @@ function renderCollection() {
 
 function buildBookCard(book) {
   const card = document.createElement('article');
-  card.className = 'book-card manga-shadow';
+  card.className = 'book-card';
   card.dataset.id = book.id;
 
   const displayTitle = formatDisplayTitle(book.title);
