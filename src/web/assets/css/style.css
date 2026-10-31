@@ -514,83 +514,256 @@ input, select, textarea {
   border-color: var(--border-dark);
 }
 
-/* ── Book Grid & Cards ── */
+/* ── Book Grid & Physical Book Object ── */
 .book-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  gap: 28px;
 }
 
 .book-card {
   border: 1px solid var(--border);
   background: var(--surface);
-  padding: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   border-radius: var(--radius-sm);
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .book-card:hover {
   border-color: var(--border-dark);
 }
 
-.book-card-header {
+/* Physical 3D Book Object Presentation */
+.book-object-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 16px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  perspective: 900px;
+}
+
+.book-3d {
+  position: relative;
+  width: 154px;
+  height: 220px;
+  background: #181818;
+  color: #ffffff;
+  border-radius: 2px 5px 5px 2px;
+  box-shadow: 
+    -1px 1px 0px rgba(0, 0, 0, 0.4),
+    2px 2px 0px #e2e2e2,
+    4px 4px 0px #cccccc,
+    5px 7px 15px rgba(0, 0, 0, 0.16);
+  transform: rotateY(-5deg) rotateX(2deg);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-object-wrap:hover .book-3d {
+  transform: rotateY(-1deg) rotateX(0deg) translateY(-4px);
+  box-shadow: 
+    -1px 2px 0px rgba(0, 0, 0, 0.3),
+    3px 4px 0px #e2e2e2,
+    5px 6px 0px #cccccc,
+    8px 12px 24px rgba(0, 0, 0, 0.22);
+}
+
+/* Spine crease overlay on the left */
+.book-spine-crease {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 16px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(0, 0, 0, 0.35) 45%,
+    rgba(0, 0, 0, 0.08) 80%,
+    transparent 100%
+  );
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Realistic page edges on right */
+.book-pages-side {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  bottom: 4px;
+  width: 4px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #ffffff,
+    #ffffff 2px,
+    #d1d1d1 2px,
+    #d1d1d1 3px
+  );
+  border-left: 1px solid rgba(0, 0, 0, 0.25);
+  z-index: 4;
+}
+
+/* Procedural Book Cover Canvas (When no image cover is provided) */
+.book-cover-canvas {
+  width: 100%;
+  height: 100%;
+  padding: 14px 12px 14px 22px;
+  background: #181818;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.book-cover-inlay {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  height: 100%;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.book-cover-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.65);
+  text-transform: uppercase;
+}
+
+.book-cover-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 2px;
+}
+
+.book-cover-title {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.book-cover-author {
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-press-mark {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+
+/* When image cover is provided */
+.book-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Card details container */
+.book-details {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.book-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.book-file-size {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.book-title-row {
+  min-width: 0;
+  overflow: hidden;
+  margin-bottom: 4px;
 }
 
 .book-title {
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.25;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
 }
 
 .book-author {
   font-size: 13px;
   color: var(--text-secondary);
   font-style: italic;
-  margin-top: 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.book-actions {
+.book-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.book-card-actions .book-read-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.book-card-tools {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.icon-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 5px;
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.icon-btn:hover {
-  border-color: var(--border);
-  color: var(--text);
-}
-
-.icon-btn--danger:hover {
-  border-color: var(--border-dark);
-  color: var(--text);
-}
-
-.book-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 16px 0 12px;
 }
 
 .book-notes {
@@ -599,12 +772,13 @@ input, select, textarea {
   background: var(--surface-subtle);
   padding: 8px 10px;
   border-left: 2px solid var(--border-dark);
-  margin-bottom: 16px;
+  margin-top: 12px;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .book-read-btn {
-  width: 100%;
   padding: 9px 12px;
   background: var(--text);
   color: var(--text-inverse);
@@ -619,6 +793,39 @@ input, select, textarea {
 .book-read-btn:hover {
   background: #333333;
   border-color: #333333;
+}
+
+/* ── Cover Upload UI in Modal ── */
+.cover-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cover-preview-box {
+  border: 1px dashed var(--border);
+  padding: 10px 14px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cover-preview-thumb {
+  width: 36px;
+  height: 52px;
+  object-fit: cover;
+  border: 1px solid var(--border-dark);
+  border-radius: 1px;
+}
+
+.cover-actions-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .book-no-file {

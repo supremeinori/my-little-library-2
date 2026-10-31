@@ -1,6 +1,7 @@
 /**
  * My Little Library — script.js
- * Editorial black & white desktop edition with IndexedDB persistence and offline reader.
+ * Editorial black & white desktop edition with realistic physical book objects,
+ * IndexedDB persistence, custom cover art support, and offline reader.
  */
 
 /* ─────────────────────────────────────────────
@@ -17,24 +18,23 @@ const STATUS_CLASS = {
 /* ─────────────────────────────────────────────
    State
    ───────────────────────────────────────────── */
-let books           = [];   // array of book metadata objects
-let editingId       = null;
-let pendingDeleteId = null;
-let currentView     = 'dashboard';
-let pendingFile     = null; // { file, type, name, size }
-let currentEpub     = null; // epub.js Book instance
-let currentRendition= null;
-let activeBlobUrl   = null;
+let books               = [];   // array of book metadata objects
+let editingId           = null;
+let pendingDeleteId     = null;
+let currentView         = 'dashboard';
+let pendingFile         = null; // { file, type, name, size }
+let pendingCoverData    = null; // Base64 dataURL or null
+let quickCoverTargetId  = null; // book ID for quick cover file selection
+let currentEpub         = null; // epub.js Book instance
+let currentRendition    = null;
+let activeBlobUrl       = null;
 
 /* ─────────────────────────────────────────────
    Initialization & Persistence
    ───────────────────────────────────────────── */
 async function loadData() {
   try {
-    // Attempt legacy migration if localStorage contains old data
     await dbMigrateLegacyLocalStorage();
-
-    // Load metadata from IndexedDB
     books = await dbGetAllBooks();
   } catch (err) {
     console.error('Failed to load books from IndexedDB:', err);
@@ -60,6 +60,15 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = String(str || '');
   return d.innerHTML;
+}
+
+function formatDisplayTitle(str) {
+  if (!str) return 'Untitled Document';
+  // If the title is an unbroken filename with underscores, replace with space for display
+  if (str.includes('_') && !str.includes(' ')) {
+    return str.replace(/_/g, ' ');
+  }
+  return str;
 }
 
 function formatBytes(bytes) {
@@ -133,9 +142,11 @@ function renderDashboard() {
     activeBooks.forEach(book => {
       const card = document.createElement('article');
       card.className = 'desk-card';
+      const displayTitle = formatDisplayTitle(book.title);
+
       card.innerHTML = `
         <div class="desk-card-body">
-          <h3 class="desk-card-title">${esc(book.title)}</h3>
+          <h3 class="desk-card-title">${esc(displayTitle)}</h3>
           <p class="desk-card-author">${esc(book.author || 'Unknown author')}</p>
         </div>
         <div class="desk-card-footer">
@@ -185,9 +196,11 @@ function renderDashboard() {
   recent.forEach(book => {
     const item = document.createElement('div');
     item.className = 'recent-row';
+    const displayTitle = formatDisplayTitle(book.title);
+
     item.innerHTML = `
       <div class="recent-info">
-        <span class="recent-title">${esc(book.title)}</span>
+        <span class="recent-title">${esc(displayTitle)}</span>
         <span class="recent-author">${esc(book.author || 'Unknown author')}</span>
       </div>
       <div class="recent-badge-wrap">
@@ -258,42 +271,75 @@ function buildBookCard(book) {
   card.className = 'book-card';
   card.dataset.id = book.id;
 
-  const fileTypeBadge = book.fileType
-    ? `<span class="badge badge-file">${book.fileType.toUpperCase()}</span>`
-    : '';
+  const displayTitle = formatDisplayTitle(book.title);
+  const displayAuthor = book.author || 'Unknown author';
+  const fileType = (book.fileType || 'pdf').toUpperCase();
+
+  // Book cover representation (Real 3D Book Object)
+  const coverHtml = book.coverImage
+    ? `<img class="book-cover-img" src="${book.coverImage}" alt="${esc(displayTitle)}" />`
+    : `<div class="book-cover-canvas">
+        <div class="book-cover-inlay">
+          <div class="book-cover-top">
+            <span class="book-cover-format">${esc(fileType)}</span>
+            <span class="book-cover-cat">${esc(book.category)}</span>
+          </div>
+          <div class="book-cover-title-wrap">
+            <h4 class="book-cover-title">${esc(displayTitle)}</h4>
+            <p class="book-cover-author">${esc(displayAuthor)}</p>
+          </div>
+          <div class="book-cover-bottom">
+            <span class="book-press-mark">LITTLE LIBRARY</span>
+          </div>
+        </div>
+      </div>`;
 
   const notesHtml = book.notes
     ? `<div class="book-notes">${esc(book.notes)}</div>`
     : '';
 
-  const readAction =
-    `<button class="book-read-btn" data-action="read" data-id="${esc(book.id)}">Read Document</button>`;
-
   card.innerHTML = `
-    <div>
-      <div class="book-card-header">
-        <div>
-          <h3 class="book-title">${esc(book.title)}</h3>
-          <p class="book-author">${esc(book.author || 'Unknown author')}</p>
+    <!-- Physical 3D Book Object -->
+    <div class="book-object-wrap" data-action="read" data-id="${esc(book.id)}" title="Click to read ${esc(displayTitle)}">
+      <div class="book-3d">
+        <div class="book-spine-crease"></div>
+        ${coverHtml}
+        <div class="book-pages-side"></div>
+      </div>
+    </div>
+
+    <!-- Book Details Container -->
+    <div class="book-details">
+      <div>
+        <div class="book-meta-row">
+          <span class="badge ${STATUS_CLASS[book.status] || ''}">${esc(book.status)}</span>
+          <span class="badge badge-file">${esc(fileType)}</span>
+          <span class="badge badge-category">${esc(book.category)}</span>
+          <span class="book-file-size">${formatBytes(book.fileSize)}</span>
         </div>
-        <div class="book-actions">
-          <button class="icon-btn" data-action="edit" data-id="${esc(book.id)}" title="Edit book" aria-label="Edit ${esc(book.title)}">
+
+        <div class="book-title-row">
+          <h3 class="book-title" title="${esc(book.title)}">${esc(displayTitle)}</h3>
+        </div>
+        <p class="book-author">${esc(displayAuthor)}</p>
+
+        ${notesHtml}
+      </div>
+
+      <div class="book-card-actions">
+        <button class="book-read-btn" data-action="read" data-id="${esc(book.id)}">Read</button>
+        <div class="book-card-tools">
+          <button class="icon-btn" data-action="cover" data-id="${esc(book.id)}" title="Set/Change Cover Image" aria-label="Change cover for ${esc(displayTitle)}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </button>
+          <button class="icon-btn" data-action="edit" data-id="${esc(book.id)}" title="Edit book metadata" aria-label="Edit ${esc(displayTitle)}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="icon-btn icon-btn--danger" data-action="delete" data-id="${esc(book.id)}" title="Remove book" aria-label="Remove ${esc(book.title)}">
+          <button class="icon-btn icon-btn--danger" data-action="delete" data-id="${esc(book.id)}" title="Remove book" aria-label="Remove ${esc(displayTitle)}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
       </div>
-      <div class="book-card-meta">
-        ${fileTypeBadge}
-        <span class="badge badge-category">${esc(book.category)}</span>
-        <span class="badge ${STATUS_CLASS[book.status] || ''}">${esc(book.status)}</span>
-      </div>
-      ${notesHtml}
-    </div>
-    <div style="margin-top: 18px;">
-      ${readAction}
     </div>
   `;
 
@@ -301,16 +347,37 @@ function buildBookCard(book) {
 }
 
 /* ─────────────────────────────────────────────
-   File Upload Handling
+   File & Cover Upload Handling
    ───────────────────────────────────────────── */
 function resetFileState() {
   pendingFile = null;
+  pendingCoverData = null;
   $('fileDropInner').classList.remove('hidden');
   $('fileSelected').classList.add('hidden');
   $('errFile').textContent = '';
   $('uploadProgress').classList.add('hidden');
   $('uploadBar').style.width = '0%';
   $('fileInput').value = '';
+  $('coverInput').value = '';
+  updateCoverPreview(null);
+}
+
+function updateCoverPreview(dataUrl) {
+  const thumb = $('coverPreviewImg');
+  const text  = $('coverPreviewText');
+  const clearBtn = $('removeCoverBtn');
+
+  if (dataUrl) {
+    thumb.src = dataUrl;
+    thumb.classList.remove('hidden');
+    text.textContent = 'Custom cover artwork selected';
+    clearBtn.classList.remove('hidden');
+  } else {
+    thumb.src = '';
+    thumb.classList.add('hidden');
+    text.textContent = 'No cover image selected (Classic hardcover will be generated)';
+    clearBtn.classList.add('hidden');
+  }
 }
 
 function stageFile(file) {
@@ -328,10 +395,10 @@ function stageFile(file) {
   $('fileDropInner').classList.add('hidden');
   $('fileSelected').classList.remove('hidden');
 
-  // Auto-fill title if blank
+  // Auto-fill title if blank, cleanly formatted
   const nameWithoutExt = file.name.replace(/\.(pdf|epub)$/i, '');
   if (!$('fieldTitle').value.trim()) {
-    $('fieldTitle').value = nameWithoutExt;
+    $('fieldTitle').value = formatDisplayTitle(nameWithoutExt);
   }
 
   $('uploadProgress').classList.remove('hidden');
@@ -360,6 +427,7 @@ function closeModal(id) {
 function openAddForm() {
   editingId = null;
   pendingFile = null;
+  pendingCoverData = null;
   $('formModalTitle').textContent = 'Add Book';
   $('formSaveBtn').textContent    = 'Save Book';
   $('bookForm').reset();
@@ -375,6 +443,7 @@ function openEditForm(id) {
   if (!book) return;
 
   editingId = id;
+  pendingCoverData = book.coverImage || null;
   $('formModalTitle').textContent = 'Edit Book';
   $('formSaveBtn').textContent    = 'Save Changes';
 
@@ -386,6 +455,7 @@ function openEditForm(id) {
   $('fieldNotes').value    = book.notes || '';
 
   $('fileUploadGroup').classList.add('hidden');
+  updateCoverPreview(pendingCoverData);
 
   clearFormErrors();
   openModal('formModal');
@@ -451,6 +521,7 @@ async function handleFormSubmit(e) {
           category,
           status,
           notes,
+          coverImage: pendingCoverData,
           updatedAt: new Date().toISOString()
         };
         await dbSaveBook(books[idx]);
@@ -464,6 +535,7 @@ async function handleFormSubmit(e) {
         category,
         status,
         notes,
+        coverImage: pendingCoverData,
         fileType: pendingFile.type,
         fileName: pendingFile.name,
         fileSize: pendingFile.size,
@@ -491,7 +563,7 @@ function openDeleteConfirm(id) {
   const book = books.find(b => b.id === id);
   if (!book) return;
   pendingDeleteId = id;
-  $('deleteBookTitle').textContent = book.title;
+  $('deleteBookTitle').textContent = formatDisplayTitle(book.title);
   openModal('deleteModal');
 }
 
@@ -530,7 +602,8 @@ async function openReader(bookId) {
     return;
   }
 
-  $('readerTitle').textContent  = book.title;
+  const displayTitle = formatDisplayTitle(book.title);
+  $('readerTitle').textContent  = displayTitle;
   $('readerAuthor').textContent = book.author || 'Unknown author';
 
   const body = $('readerBody');
@@ -546,7 +619,7 @@ async function openReader(bookId) {
   if (book.fileType === 'pdf') {
     const iframe = document.createElement('iframe');
     iframe.src = activeBlobUrl;
-    iframe.title = book.title;
+    iframe.title = displayTitle;
     body.appendChild(iframe);
 
     $('readerOpenExternal').onclick = () => window.open(activeBlobUrl, '_blank');
@@ -688,6 +761,48 @@ document.addEventListener('DOMContentLoaded', () => {
     resetFileState();
   });
 
+  // Cover Image Input in Modal
+  const coverInput = $('coverInput');
+  coverInput.addEventListener('change', () => {
+    if (coverInput.files && coverInput.files[0]) {
+      const imgFile = coverInput.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        pendingCoverData = e.target.result;
+        updateCoverPreview(pendingCoverData);
+      };
+      reader.readAsDataURL(imgFile);
+    }
+  });
+
+  $('removeCoverBtn').addEventListener('click', () => {
+    pendingCoverData = null;
+    coverInput.value = '';
+    updateCoverPreview(null);
+  });
+
+  // Quick Cover Upload Input
+  const quickCoverInput = $('quickCoverInput');
+  quickCoverInput.addEventListener('change', async () => {
+    if (quickCoverInput.files && quickCoverInput.files[0] && quickCoverTargetId) {
+      const file = quickCoverInput.files[0];
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const coverData = e.target.result;
+        const targetBook = books.find(b => b.id === quickCoverTargetId);
+        if (targetBook) {
+          targetBook.coverImage = coverData;
+          await dbSaveBook(targetBook);
+          renderCollection();
+          renderDashboard();
+        }
+        quickCoverTargetId = null;
+        quickCoverInput.value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
   // Action delegation on book grid and active reading desk
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
@@ -698,6 +813,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (action === 'read')   openReader(id);
     if (action === 'edit')   openEditForm(id);
     if (action === 'delete') openDeleteConfirm(id);
+    if (action === 'cover') {
+      quickCoverTargetId = id;
+      quickCoverInput.click();
+    }
   });
 
   // Delete modal
