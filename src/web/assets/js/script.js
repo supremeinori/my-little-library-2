@@ -1,6 +1,6 @@
 /**
  * My Little Library — script.js
- * Windows Desktop Edition with IndexedDB persistence and offline reader.
+ * Editorial black & white desktop edition with IndexedDB persistence and offline reader.
  */
 
 /* ─────────────────────────────────────────────
@@ -90,7 +90,6 @@ function showView(viewName) {
   const activeBtn = document.querySelector(`.nav-item[data-view="${viewName}"]`);
   if (activeBtn) activeBtn.classList.add('active');
 
-  // Close mobile sidebar if open
   closeMobileSidebar();
 
   if (viewName === 'dashboard')  renderDashboard();
@@ -108,10 +107,10 @@ function closeMobileSidebar() {
 }
 
 /* ─────────────────────────────────────────────
-   Dashboard Rendering
+   Dashboard Rendering (Editorial Reading Desk)
    ───────────────────────────────────────────── */
 function renderDashboard() {
-  const total = books.length;
+  const total    = books.length;
   const want     = books.filter(b => b.status === 'Want to Read').length;
   const reading  = books.filter(b => b.status === 'Reading').length;
   const finished = books.filter(b => b.status === 'Finished').length;
@@ -121,7 +120,34 @@ function renderDashboard() {
   $('statReading').textContent  = reading;
   $('statFinished').textContent = finished;
 
-  // Category distribution bars
+  // 1. Active Reading Desk (Focus)
+  const activeReadingSection = $('activeReadingSection');
+  const activeReadingList    = $('activeReadingList');
+  const activeBooks = books.filter(b => b.status === 'Reading');
+
+  activeReadingList.innerHTML = '';
+  if (activeBooks.length === 0) {
+    activeReadingSection.classList.add('hidden');
+  } else {
+    activeReadingSection.classList.remove('hidden');
+    activeBooks.forEach(book => {
+      const card = document.createElement('article');
+      card.className = 'desk-card';
+      card.innerHTML = `
+        <div class="desk-card-body">
+          <h3 class="desk-card-title">${esc(book.title)}</h3>
+          <p class="desk-card-author">${esc(book.author || 'Unknown author')}</p>
+        </div>
+        <div class="desk-card-footer">
+          <span class="badge badge-category">${esc(book.category)}</span>
+          <button class="btn btn-primary btn-sm" data-action="read" data-id="${esc(book.id)}">Continue Reading</button>
+        </div>
+      `;
+      activeReadingList.appendChild(card);
+    });
+  }
+
+  // 2. Subject Distribution (Monochrome Breakdown)
   const catContainer = $('categoryBars');
   catContainer.innerHTML = '';
 
@@ -130,19 +156,20 @@ function renderDashboard() {
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
 
     const row = document.createElement('div');
-    row.className = 'category-bar-row';
-    row.innerHTML =
-      '<div class="cat-bar-header">' +
-        '<span class="cat-bar-name">' + esc(cat) + '</span>' +
-        '<span class="cat-bar-count">' + count + ' (' + pct + '%)</span>' +
-      '</div>' +
-      '<div class="cat-bar-track">' +
-        '<div class="cat-bar-fill cat-bar-fill--' + cat.toLowerCase() + '" style="width:' + pct + '%"></div>' +
-      '</div>';
+    row.className = 'category-row';
+    row.innerHTML = `
+      <div class="cat-header">
+        <span class="cat-name">${esc(cat)}</span>
+        <span class="cat-count">${count} (${pct}%)</span>
+      </div>
+      <div class="cat-track">
+        <div class="cat-fill" style="width: ${pct}%"></div>
+      </div>
+    `;
     catContainer.appendChild(row);
   });
 
-  // Recently added books (max 5)
+  // 3. Recent Additions Ledger
   const recentContainer = $('recentList');
   recentContainer.innerHTML = '';
 
@@ -151,28 +178,29 @@ function renderDashboard() {
     .slice(0, 5);
 
   if (recent.length === 0) {
-    recentContainer.innerHTML = '<p class="recent-empty">No books added yet.</p>';
+    recentContainer.innerHTML = '<p class="book-no-file" style="text-align:left;padding:12px 0;">No additions recorded yet.</p>';
     return;
   }
 
   recent.forEach(book => {
     const item = document.createElement('div');
-    item.className = 'recent-item';
-    item.innerHTML =
-      '<div class="recent-info">' +
-        '<span class="recent-title">' + esc(book.title) + '</span>' +
-        '<span class="recent-author">' + esc(book.author || 'Unknown author') + '</span>' +
-      '</div>' +
-      '<div class="recent-meta">' +
-        '<span class="badge badge-category">' + esc(book.category) + '</span>' +
-        '<span class="badge ' + (STATUS_CLASS[book.status] || '') + '">' + esc(book.status) + '</span>' +
-      '</div>';
+    item.className = 'recent-row';
+    item.innerHTML = `
+      <div class="recent-info">
+        <span class="recent-title">${esc(book.title)}</span>
+        <span class="recent-author">${esc(book.author || 'Unknown author')}</span>
+      </div>
+      <div class="recent-badge-wrap">
+        <span class="badge badge-file">${(book.fileType || 'doc').toUpperCase()}</span>
+        <span class="badge ${STATUS_CLASS[book.status] || ''}">${esc(book.status)}</span>
+      </div>
+    `;
     recentContainer.appendChild(item);
   });
 }
 
 /* ─────────────────────────────────────────────
-   Collection & Filter Rendering
+   Collection Rendering
    ───────────────────────────────────────────── */
 function getFiltered() {
   const query     = $('searchInput').value.trim().toLowerCase();
@@ -185,7 +213,8 @@ function getFiltered() {
     if (query) {
       const inTitle  = b.title.toLowerCase().includes(query);
       const inAuthor = (b.author || '').toLowerCase().includes(query);
-      if (!inTitle && !inAuthor) return false;
+      const inNotes  = (b.notes || '').toLowerCase().includes(query);
+      if (!inTitle && !inAuthor && !inNotes) return false;
     }
     return true;
   });
@@ -208,12 +237,12 @@ function renderCollection() {
       $('filterStatus').value       !== '';
 
     if (hasFilters) {
-      $('emptyTitle').textContent = 'No books match your search.';
-      $('emptySub').textContent   = 'Try adjusting the search or filters.';
+      $('emptyTitle').textContent = 'No matching titles found.';
+      $('emptySub').textContent   = 'Try adjusting your search query or subject filters.';
       $('emptyAddBtn').classList.add('hidden');
     } else {
       $('emptyTitle').textContent = 'Your library is empty.';
-      $('emptySub').textContent   = 'Upload a PDF or ePub to get started.';
+      $('emptySub').textContent   = 'Add your first PDF or EPUB document to build your personal archive.';
       $('emptyAddBtn').classList.remove('hidden');
     }
     return;
@@ -230,32 +259,43 @@ function buildBookCard(book) {
   card.dataset.id = book.id;
 
   const fileTypeBadge = book.fileType
-    ? '<span class="badge badge-file badge-file-' + book.fileType + '">' + book.fileType.toUpperCase() + '</span>'
+    ? `<span class="badge badge-file">${book.fileType.toUpperCase()}</span>`
     : '';
 
   const notesHtml = book.notes
-    ? '<div class="book-notes">' + esc(book.notes) + '</div>'
+    ? `<div class="book-notes">${esc(book.notes)}</div>`
     : '';
 
   const readAction =
-    '<button class="book-read-btn" data-action="read" data-id="' + esc(book.id) + '">&#128214; Read</button>';
+    `<button class="book-read-btn" data-action="read" data-id="${esc(book.id)}">Read Document</button>`;
 
-  card.innerHTML =
-    '<div class="book-card-header">' +
-      '<div class="book-title">' + esc(book.title) + '</div>' +
-      '<div class="book-actions">' +
-        '<button class="icon-btn" data-action="edit" data-id="' + esc(book.id) + '" title="Edit" aria-label="Edit ' + esc(book.title) + '">&#9998;</button>' +
-        '<button class="icon-btn icon-btn--danger" data-action="delete" data-id="' + esc(book.id) + '" title="Delete" aria-label="Delete ' + esc(book.title) + '">&#128465;</button>' +
-      '</div>' +
-    '</div>' +
-    '<div class="book-author">' + esc(book.author || 'Unknown author') + '</div>' +
-    '<div class="book-card-meta">' +
-      fileTypeBadge +
-      '<span class="badge badge-category">' + esc(book.category) + '</span>' +
-      '<span class="badge ' + (STATUS_CLASS[book.status] || '') + '">' + esc(book.status) + '</span>' +
-    '</div>' +
-    notesHtml +
-    readAction;
+  card.innerHTML = `
+    <div>
+      <div class="book-card-header">
+        <div>
+          <h3 class="book-title">${esc(book.title)}</h3>
+          <p class="book-author">${esc(book.author || 'Unknown author')}</p>
+        </div>
+        <div class="book-actions">
+          <button class="icon-btn" data-action="edit" data-id="${esc(book.id)}" title="Edit book" aria-label="Edit ${esc(book.title)}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn icon-btn--danger" data-action="delete" data-id="${esc(book.id)}" title="Remove book" aria-label="Remove ${esc(book.title)}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="book-card-meta">
+        ${fileTypeBadge}
+        <span class="badge badge-category">${esc(book.category)}</span>
+        <span class="badge ${STATUS_CLASS[book.status] || ''}">${esc(book.status)}</span>
+      </div>
+      ${notesHtml}
+    </div>
+    <div style="margin-top: 18px;">
+      ${readAction}
+    </div>
+  `;
 
   return card;
 }
@@ -278,7 +318,7 @@ function stageFile(file) {
 
   const type = getFileType(file.name);
   if (type === 'unknown') {
-    $('errFile').textContent = 'Only PDF and ePub files are supported.';
+    $('errFile').textContent = 'Only PDF and ePub documents are supported.';
     return;
   }
 
@@ -294,10 +334,9 @@ function stageFile(file) {
     $('fieldTitle').value = nameWithoutExt;
   }
 
-  // Quick visual feedback
   $('uploadProgress').classList.remove('hidden');
   $('uploadBar').style.width = '100%';
-  setTimeout(() => $('uploadProgress').classList.add('hidden'), 300);
+  setTimeout(() => $('uploadProgress').classList.add('hidden'), 250);
 
   pendingFile = {
     file: file,
@@ -346,7 +385,6 @@ function openEditForm(id) {
   $('fieldStatus').value   = book.status;
   $('fieldNotes').value    = book.notes || '';
 
-  // Preserve file when editing metadata
   $('fileUploadGroup').classList.add('hidden');
 
   clearFormErrors();
@@ -372,8 +410,8 @@ function validateForm() {
 
   const fields = [
     { input: 'fieldTitle',    error: 'errTitle',    label: 'Title' },
-    { input: 'fieldCategory', error: 'errCategory', label: 'Category' },
-    { input: 'fieldStatus',   error: 'errStatus',   label: 'Status' },
+    { input: 'fieldCategory', error: 'errCategory', label: 'Subject' },
+    { input: 'fieldStatus',   error: 'errStatus',   label: 'Reading status' },
   ];
 
   fields.forEach(({ input, error, label }) => {
@@ -432,10 +470,7 @@ async function handleFormSubmit(e) {
         createdAt: new Date().toISOString(),
       };
 
-      // Save file blob to IndexedDB
       await dbSaveFile(id, pendingFile.file, pendingFile.type, pendingFile.name, pendingFile.size);
-
-      // Save metadata
       await dbSaveBook(newBook);
       books.push(newBook);
     }
@@ -445,7 +480,7 @@ async function handleFormSubmit(e) {
     renderDashboard();
   } catch (err) {
     console.error('Save failed:', err);
-    alert('Failed to save book. Storage might be restricted.');
+    alert('Failed to save book to database.');
   }
 }
 
@@ -472,12 +507,12 @@ async function handleDeleteConfirm() {
     renderDashboard();
   } catch (err) {
     console.error('Delete failed:', err);
-    alert('Could not delete the book. Please try again.');
+    alert('Could not delete the book record.');
   }
 }
 
 /* ─────────────────────────────────────────────
-   Offline Reader (PDF & ePub)
+   Integrated Reader (PDF & ePub)
    ───────────────────────────────────────────── */
 async function openReader(bookId) {
   const book = books.find(b => b.id === bookId);
@@ -496,7 +531,7 @@ async function openReader(bookId) {
   }
 
   $('readerTitle').textContent  = book.title;
-  $('readerAuthor').textContent = book.author || '';
+  $('readerAuthor').textContent = book.author || 'Unknown author';
 
   const body = $('readerBody');
   body.innerHTML = '';
@@ -521,21 +556,21 @@ async function openReader(bookId) {
     viewerDiv.id = 'epubViewer';
     body.appendChild(viewerDiv);
 
-    // Prev / Next controls
     const prevBtn = document.createElement('button');
     prevBtn.className = 'epub-nav epub-prev';
     prevBtn.innerHTML = '&#8249;';
     prevBtn.title = 'Previous page';
+    prevBtn.setAttribute('aria-label', 'Previous page');
 
     const nextBtn = document.createElement('button');
     nextBtn.className = 'epub-nav epub-next';
     nextBtn.innerHTML = '&#8250;';
     nextBtn.title = 'Next page';
+    nextBtn.setAttribute('aria-label', 'Next page');
 
     body.appendChild(prevBtn);
     body.appendChild(nextBtn);
 
-    // Clean previous instances
     if (currentRendition) { try { currentRendition.destroy(); } catch (_) {} }
     if (currentEpub)      { try { currentEpub.destroy();      } catch (_) {} }
 
@@ -553,11 +588,11 @@ async function openReader(bookId) {
         prevBtn.onclick = () => currentRendition.prev();
         nextBtn.onclick = () => currentRendition.next();
       } else {
-        body.innerHTML = '<p style="color:#fff;padding:40px;text-align:center;">ePub reader library not available.</p>';
+        body.innerHTML = '<p style="padding:48px;text-align:center;color:#666;">ePub reader engine could not be initialized.</p>';
       }
     } catch (e) {
       console.error('Error rendering EPUB:', e);
-      body.innerHTML = '<p style="color:#fff;padding:40px;text-align:center;">Failed to render EPUB file.</p>';
+      body.innerHTML = '<p style="padding:48px;text-align:center;color:#666;">Failed to load EPUB publication.</p>';
     }
 
     $('readerOpenExternal').onclick = () => window.open(activeBlobUrl, '_blank');
@@ -621,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('formCancelBtn').addEventListener('click', () => closeModal('formModal'));
   $('bookForm').addEventListener('submit', handleFormSubmit);
 
-  // File Drop area
+  // File Dropzone
   const dropArea  = $('fileDropArea');
   const fileInput = $('fileInput');
 
@@ -653,8 +688,8 @@ document.addEventListener('DOMContentLoaded', () => {
     resetFileState();
   });
 
-  // Book action delegation (read / edit / delete)
-  $('bookGrid').addEventListener('click', (e) => {
+  // Action delegation on book grid and active reading desk
+  document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
@@ -674,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('readerCloseBtn').addEventListener('click', closeReader);
   $('readerOverlay').addEventListener('click', closeReader);
 
-  // Keyboard shortcut ESC to close modals or reader
+  // Keyboard shortcut: ESC to close modals or reader
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!$('readerPanel').classList.contains('hidden')) {
@@ -687,6 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Start app
+  // Boot
   loadData();
 });
