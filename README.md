@@ -108,6 +108,20 @@ Whether organizing academic monographs, classic literature, manga, or technical 
 
 ---
 
+## 📚 Documentation
+
+Detailed documentation is available in the [`docs/`](docs/) directory:
+
+- 📖 **[User Guide](docs/USER_GUIDE.md)**: Cataloging books, custom artwork, 3D flipbook reading controls, and tray operation.
+- 🏗️ **[Architecture & System Design](docs/ARCHITECTURE.md)**: Win32 C host, Microsoft WebView2 COM architecture, single-instance named mutex, and process lifecycle.
+- ⚙️ **[Windows Build Guide](docs/BUILD_WINDOWS.md)**: Toolchain requirements, compiling with Clang/LLVM-MinGW, and Inno Setup 6 installer creation.
+- 💾 **[Data Storage & Backup Guide](docs/DATA_AND_BACKUP.md)**: IndexedDB LevelDB schema, `%LOCALAPPDATA%` physical storage paths, and migration procedures.
+- 🔧 **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)**: Solutions for WebView2 runtime detection, background tray behavior, and flipbook rendering.
+- 📋 **[Software Requirements Specification (SRS)](docs/SRS.md)**: Complete functional (FR) and non-functional (NFR) requirements breakdown.
+- 🧪 **[Test Plan & Quality Assurance](docs/TEST_PLAN.md)**: Lifecycle test procedures, verification matrices, and automated test scripts.
+
+---
+
 ## 📂 Project Structure
 
 ```
