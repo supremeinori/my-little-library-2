@@ -36,6 +36,10 @@ let renderedPdfPages    = new Set();
 let currentReaderBook   = null;
 let currentReaderBlob   = null;
 let pdfReaderMode       = 'flip'; // 'flip' or 'scroll'
+let currentZoom         = 1.0;
+const MIN_ZOOM          = 0.5;
+const MAX_ZOOM          = 2.5;
+const ZOOM_STEP         = 0.15;
 
 /* ─────────────────────────────────────────────
    Initialization & Persistence
@@ -597,6 +601,27 @@ async function handleDeleteConfirm() {
 /* ─────────────────────────────────────────────
    PDF Flipbook & Reader Engine
    ───────────────────────────────────────────── */
+function applyZoom(newZoom) {
+  currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(newZoom * 100) / 100));
+  const container = document.getElementById('flipbookContainer');
+  const wrapper   = document.getElementById('flipbookWrapper');
+  const label     = document.getElementById('flipbookZoomLabel');
+
+  if (container) {
+    container.style.transform = `scale(${currentZoom})`;
+  }
+  if (label) {
+    label.textContent = `${Math.round(currentZoom * 100)}%`;
+  }
+  if (wrapper) {
+    if (currentZoom > 1.05) {
+      wrapper.classList.add('is-zoomed');
+    } else {
+      wrapper.classList.remove('is-zoomed');
+    }
+  }
+}
+
 async function renderPdfViewer(blob, book) {
   const body = $('readerBody');
   const displayTitle = formatDisplayTitle(book.title);
@@ -607,6 +632,7 @@ async function renderPdfViewer(blob, book) {
     currentFlipInstance = null;
   }
   renderedPdfPages.clear();
+  currentZoom = 1.0;
 
   if (pdfReaderMode === 'scroll') {
     // Standard continuous view
@@ -620,24 +646,37 @@ async function renderPdfViewer(blob, book) {
 
   // Flipbook Mode (3D Physical Book Spread)
   body.innerHTML = `
-    <div class="flipbook-stage">
+    <div class="flipbook-stage" id="flipbookStage">
       <div class="flipbook-page-loading" id="flipbookLoadingMsg">
         Preparing pages & binding book…
       </div>
-      <div id="flipbookWrapper" style="display:none; width: 100%; height: 100%; justify-content: center; align-items: center;">
+      <div id="flipbookWrapper" class="flipbook-wrapper" style="display:none;">
         <div id="flipbookContainer" class="flipbook-container"></div>
       </div>
       <div class="flipbook-toolbar hidden" id="flipbookToolbar">
-        <button type="button" class="flipbook-btn" id="flipPrevBtn" title="Previous page">
+        <button type="button" class="flipbook-btn" id="flipPrevBtn" title="Previous page (Left arrow)">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
           Prev
         </button>
         <span class="flipbook-counter" id="flipbookCounter">Cover</span>
-        <button type="button" class="flipbook-btn" id="flipNextBtn" title="Next page">
+        <button type="button" class="flipbook-btn" id="flipNextBtn" title="Next page (Right arrow)">
           Next
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <span class="flipbook-hint">Use &larr; / &rarr; keys or drag page corners</span>
+
+        <div class="flipbook-zoom-group">
+          <button type="button" class="flipbook-btn flipbook-btn--zoom" id="flipZoomOut" title="Zoom out (Ctrl + - or Ctrl + Wheel Down)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button type="button" class="flipbook-btn flipbook-btn--zoom-reset" id="flipZoomReset" title="Reset zoom (Ctrl + 0)">
+            <span id="flipbookZoomLabel">100%</span>
+          </button>
+          <button type="button" class="flipbook-btn flipbook-btn--zoom" id="flipZoomIn" title="Zoom in (Ctrl + + or Ctrl + Wheel Up)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <span class="flipbook-hint">Drag corners to turn &bull; Ctrl+Scroll to zoom</span>
       </div>
     </div>
   `;
@@ -754,6 +793,17 @@ async function renderPdfViewer(blob, book) {
 
       currentFlipInstance.loadFromHTML(pageElements);
 
+      // Coordinate scaling hook: ensures mouse hover and drag remain accurate at any zoom level
+      if (currentFlipInstance.getUI()) {
+        currentFlipInstance.getUI().getMousePos = function(clientX, clientY) {
+          const rect = this.distElement.getBoundingClientRect();
+          return {
+            x: (clientX - rect.left) / currentZoom,
+            y: (clientY - rect.top) / currentZoom
+          };
+        };
+      }
+
       // Function to render page canvas on demand
       async function renderPdfPageCanvas(pageNum) {
         if (renderedPdfPages.has(pageNum) || pageNum < 1 || pageNum > totalPages) return;
@@ -810,12 +860,70 @@ async function renderPdfViewer(blob, book) {
         }
       });
 
+      // Navigation buttons
       document.getElementById('flipPrevBtn').onclick = () => {
         if (currentFlipInstance) currentFlipInstance.flipPrev();
       };
       document.getElementById('flipNextBtn').onclick = () => {
         if (currentFlipInstance) currentFlipInstance.flipNext();
       };
+
+      // Zoom Controls
+      document.getElementById('flipZoomIn').onclick = () => applyZoom(currentZoom + ZOOM_STEP);
+      document.getElementById('flipZoomOut').onclick = () => applyZoom(currentZoom - ZOOM_STEP);
+      document.getElementById('flipZoomReset').onclick = () => applyZoom(1.0);
+
+      // Ctrl + MouseWheel Zoom
+      const stage = document.getElementById('flipbookStage');
+      if (stage) {
+        stage.addEventListener('wheel', (e) => {
+          if (e.ctrlKey) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+              applyZoom(currentZoom + ZOOM_STEP);
+            } else if (e.deltaY > 0) {
+              applyZoom(currentZoom - ZOOM_STEP);
+            }
+          }
+        }, { passive: false });
+      }
+
+      // Pan to drag when zoomed in
+      const wrapper = document.getElementById('flipbookWrapper');
+      if (wrapper) {
+        let isPanning = false;
+        let startX = 0, startY = 0;
+        let scrollLeft = 0, scrollTop = 0;
+
+        wrapper.addEventListener('mousedown', (e) => {
+          if (currentZoom > 1.05 && (e.target === wrapper || e.target.classList.contains('flipbook-container') || e.button === 1)) {
+            isPanning = true;
+            wrapper.classList.add('is-panning');
+            startX = e.pageX - wrapper.offsetLeft;
+            startY = e.pageY - wrapper.offsetTop;
+            scrollLeft = wrapper.scrollLeft;
+            scrollTop = wrapper.scrollTop;
+          }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isPanning) return;
+          e.preventDefault();
+          const x = e.pageX - wrapper.offsetLeft;
+          const y = e.pageY - wrapper.offsetTop;
+          const walkX = (x - startX) * 1.2;
+          const walkY = (y - startY) * 1.2;
+          wrapper.scrollLeft = scrollLeft - walkX;
+          wrapper.scrollTop = scrollTop - walkY;
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (isPanning) {
+            isPanning = false;
+            wrapper.classList.remove('is-panning');
+          }
+        });
+      }
 
       document.getElementById('flipbookLoadingMsg').style.display = 'none';
       document.getElementById('flipbookWrapper').style.display = 'flex';
@@ -840,6 +948,24 @@ function handleReaderKeydown(e) {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
 
+  // Zoom shortcuts
+  if (e.ctrlKey && (e.key === '=' || e.key === '+')) {
+    e.preventDefault();
+    applyZoom(currentZoom + ZOOM_STEP);
+    return;
+  }
+  if (e.ctrlKey && (e.key === '-' || e.key === '_')) {
+    e.preventDefault();
+    applyZoom(currentZoom - ZOOM_STEP);
+    return;
+  }
+  if (e.ctrlKey && e.key === '0') {
+    e.preventDefault();
+    applyZoom(1.0);
+    return;
+  }
+
+  // Page turn navigation
   if (e.key === 'ArrowRight' || e.key === 'PageDown') {
     if (currentFlipInstance) currentFlipInstance.flipNext();
     else if (currentRendition) currentRendition.next();
