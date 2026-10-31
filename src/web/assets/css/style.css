@@ -32,6 +32,34 @@
   --font-mono:        ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace;
 }
 
+[data-theme="dark"] {
+  --bg:               #101010;
+  --surface:          #161616;
+  --surface-subtle:   #1e1e1e;
+  --surface-muted:    #252525;
+  --border:           #2c2c2c;
+  --border-dark:      #ffffff;
+  --text:             #efefef;
+  --text-secondary:   #a5a5a5;
+  --text-muted:       #727272;
+  --text-inverse:     #111111;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:               #101010;
+    --surface:          #161616;
+    --surface-subtle:   #1e1e1e;
+    --surface-muted:    #252525;
+    --border:           #2c2c2c;
+    --border-dark:      #ffffff;
+    --text:             #efefef;
+    --text-secondary:   #a5a5a5;
+    --text-muted:       #727272;
+    --text-inverse:     #111111;
+  }
+}
+
 html {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
@@ -159,13 +187,82 @@ input, select, textarea {
 }
 
 .sidebar-footer {
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-top: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
   font-size: 11px;
   color: var(--text-muted);
   font-family: var(--font-mono);
+}
+
+.sidebar-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.theme-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--border-dark);
+  background: var(--surface-muted);
+}
+
+.theme-icon {
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .theme-icon--dark { display: none; }
+[data-theme="dark"] .theme-icon--light { display: block; }
+:root:not([data-theme="dark"]) .theme-icon--light { display: none; }
+:root:not([data-theme="dark"]) .theme-icon--dark { display: block; }
+
+/* ── Dark Mode Subtle Refinements ── */
+[data-theme="dark"] .book-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .book-3d {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    -1px 1px 0px rgba(0, 0, 0, 0.8),
+    2px 2px 0px #2a2a2a,
+    4px 4px 0px #1e1e1e,
+    6px 8px 18px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .book-pages-side {
+  background: repeating-linear-gradient(
+    to bottom,
+    #cfcfcf,
+    #cfcfcf 2px,
+    #666666 2px,
+    #666666 3px
+  );
+  border-left: 1px solid rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .modal-backdrop {
+  background: rgba(0, 0, 0, 0.8);
 }
 
 /* ── Mobile Header ── */

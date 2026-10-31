@@ -1099,9 +1099,37 @@ function closeReader() {
 }
 
 /* ─────────────────────────────────────────────
+   Theme Management (Light / Dark Mode)
+   ───────────────────────────────────────────── */
+function initTheme() {
+  const saved = localStorage.getItem('my_little_library_theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initialTheme = saved ? saved : (prefersDark ? 'dark' : 'light');
+  applyTheme(initialTheme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('my_little_library_theme', theme);
+  const textEl = $('themeToggleText');
+  if (textEl) {
+    textEl.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+}
+
+/* ─────────────────────────────────────────────
    Event Listeners Setup
    ───────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  // Theme initialization
+  initTheme();
+  $('themeToggleBtn').addEventListener('click', toggleTheme);
   // Navigation
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => showView(btn.dataset.view));
