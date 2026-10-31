@@ -1,0 +1,40 @@
+# Build output
+build/
+bin/
+dist/
+*.exe
+*.dll
+*.obj
+*.o
+*.lib
+*.a
+*.res
+*.pdb
+*.ilk
+*.exp
+
+# Packages
+*.zip
+*.7z
+*.tar.gz
+
+# WebView2 SDK & User Data
+/deps/
+/src/native/webview2/
+WebView2Loader.dll
+EBWebView/
+WebView2Data/
+
+# IDE & Editor files
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
