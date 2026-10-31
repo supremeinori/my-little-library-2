@@ -1748,11 +1748,172 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   opacity: 0.7;
 }
 
+.reader-layout {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
 .reader-body {
   flex: 1;
+  min-width: 0;
   position: relative;
   background: #141414;
   overflow: hidden;
+  height: 100%;
+}
+
+/* ── AI Companion Sidebar ── */
+.ai-sidebar {
+  width: 480px;
+  min-width: 360px;
+  max-width: 650px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1.5px solid var(--border-dark);
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.25);
+}
+
+.ai-sidebar.hidden {
+  display: none !important;
+}
+
+.ai-sidebar-topbar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: var(--surface-subtle);
+  border-bottom: 1.5px solid var(--border-dark);
+  gap: 8px;
+}
+
+.ai-provider-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ai-provider-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 5px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.ai-tab.is-active {
+  background: var(--surface);
+  border-color: var(--border-dark);
+  color: var(--text);
+  box-shadow: 1px 1px 0 var(--manga-shadow-color);
+  font-weight: 700;
+}
+
+.ai-sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.ai-helper-banner {
+  padding: 8px 12px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-helper-banner strong {
+  color: var(--text);
+}
+
+.ai-webview-slot {
+  flex: 1;
+  position: relative;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+.ai-slot-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  background: var(--surface);
+  pointer-events: none;
+}
+
+.ai-slot-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: is-spinning 0.8s linear infinite;
+}
+
+#readerAiToggleBtn.is-active {
+  background: var(--text);
+  color: var(--text-inverse);
+  border-color: var(--text);
 }
 
 .reader-body iframe {

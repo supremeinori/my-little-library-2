@@ -23,9 +23,18 @@ typedef HRESULT (STDAPICALLTYPE *CreateCoreWebView2EnvironmentWithOptionsFn)(
     ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler* environment_created_handler
 );
 
+static ICoreWebView2Environment *g_env = NULL;
 static ICoreWebView2Controller *g_controller = NULL;
 static ICoreWebView2 *g_webview = NULL;
+static ICoreWebView2Controller *g_ai_controller = NULL;
+static ICoreWebView2 *g_ai_webview = NULL;
+static HWND g_hWnd = NULL;
 static HMODULE g_hLoader = NULL;
+
+static BOOL g_ai_visible = FALSE;
+static RECT g_ai_bounds = { 0, 0, 0, 0 };
+static BOOL g_ai_creating = FALSE;
+static wchar_t g_ai_pending_url[1024] = L"https://gemini.google.com/app";
 
 /* ─────────────────────────────────────────────────────────────
    COM Callback: Environment Creation Completed Handler
@@ -137,6 +146,214 @@ static void LaunchUpdaterAndRestart(HWND hWnd, const wchar_t *downloadUrl) {
     }
 }
 
+static int ExtractJsonInt(const wchar_t *json, const wchar_t *key, int defaultVal) {
+    wchar_t pattern[128];
+    swprintf(pattern, 128, L"\"%ls\":", key);
+    const wchar_t *p = wcsstr(json, pattern);
+    if (!p) return defaultVal;
+    p += wcslen(pattern);
+    while (*p == L' ' || *p == L'\t') p++;
+    return _wtoi(p);
+}
+
+static BOOL ExtractJsonBool(const wchar_t *json, const wchar_t *key, BOOL defaultVal) {
+    wchar_t pattern[128];
+    swprintf(pattern, 128, L"\"%ls\":", key);
+    const wchar_t *p = wcsstr(json, pattern);
+    if (!p) return defaultVal;
+    p += wcslen(pattern);
+    while (*p == L' ' || *p == L'\t') p++;
+    if (wcsncmp(p, L"true", 4) == 0) return TRUE;
+    if (wcsncmp(p, L"false", 5) == 0) return FALSE;
+    return defaultVal;
+}
+
+static BOOL ExtractJsonString(const wchar_t *json, const wchar_t *key, wchar_t *outBuf, size_t maxLen) {
+    wchar_t pattern[128];
+    swprintf(pattern, 128, L"\"%ls\":\"", key);
+    const wchar_t *p = wcsstr(json, pattern);
+    if (!p) return FALSE;
+    p += wcslen(pattern);
+    const wchar_t *end = wcschr(p, L'\"');
+    if (!end) return FALSE;
+    size_t len = end - p;
+    if (len >= maxLen) len = maxLen - 1;
+    wcsncpy(outBuf, p, len);
+    outBuf[len] = L'\0';
+    return TRUE;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   COM Callback: Secondary AI Companion Controller Completed Handler
+   ───────────────────────────────────────────────────────────── */
+
+typedef struct AIControllerCompletedHandler {
+    ICoreWebView2CreateCoreWebView2ControllerCompletedHandler lpVtblContainer;
+    ICoreWebView2CreateCoreWebView2ControllerCompletedHandlerVtbl vtbl;
+    LONG refCount;
+    HWND hWnd;
+    wchar_t initialUrl[1024];
+} AIControllerCompletedHandler;
+
+static HRESULT STDMETHODCALLTYPE AIController_QueryInterface(
+    ICoreWebView2CreateCoreWebView2ControllerCompletedHandler *This,
+    REFIID riid,
+    void **ppvObject
+) {
+    if (!ppvObject) return E_POINTER;
+    if (IsEqualIID(riid, &IID_IUnknown) ||
+        IsEqualIID(riid, &IID_ICoreWebView2CreateCoreWebView2ControllerCompletedHandler)) {
+        *ppvObject = This;
+        This->lpVtbl->AddRef(This);
+        return S_OK;
+    }
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE AIController_AddRef(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler *This) {
+    AIControllerCompletedHandler *self = (AIControllerCompletedHandler*)This;
+    return InterlockedIncrement(&self->refCount);
+}
+
+static ULONG STDMETHODCALLTYPE AIController_Release(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler *This) {
+    AIControllerCompletedHandler *self = (AIControllerCompletedHandler*)This;
+    ULONG count = InterlockedDecrement(&self->refCount);
+    if (count == 0) {
+        free(self);
+    }
+    return count;
+}
+
+static HRESULT STDMETHODCALLTYPE AIController_Invoke(
+    ICoreWebView2CreateCoreWebView2ControllerCompletedHandler *This,
+    HRESULT errorCode,
+    ICoreWebView2Controller *createdController
+) {
+    AIControllerCompletedHandler *self = (AIControllerCompletedHandler*)This;
+    g_ai_creating = FALSE;
+
+    if (FAILED(errorCode) || !createdController) {
+        return S_OK;
+    }
+
+    g_ai_controller = createdController;
+    g_ai_controller->lpVtbl->AddRef(g_ai_controller);
+
+    HRESULT hr = g_ai_controller->lpVtbl->get_CoreWebView2(g_ai_controller, &g_ai_webview);
+    if (SUCCEEDED(hr) && g_ai_webview) {
+        ICoreWebView2Settings *settings = NULL;
+        if (SUCCEEDED(g_ai_webview->lpVtbl->get_Settings(g_ai_webview, &settings)) && settings) {
+            settings->lpVtbl->put_AreDefaultContextMenusEnabled(settings, TRUE);
+            settings->lpVtbl->put_IsStatusBarEnabled(settings, FALSE);
+            settings->lpVtbl->Release(settings);
+        }
+
+        if (g_ai_bounds.right > g_ai_bounds.left && g_ai_bounds.bottom > g_ai_bounds.top) {
+            g_ai_controller->lpVtbl->put_Bounds(g_ai_controller, g_ai_bounds);
+        }
+        g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, g_ai_visible);
+
+        const wchar_t *targetUrl = (self->initialUrl[0] != L'\0') ? self->initialUrl : L"https://gemini.google.com/app";
+        g_ai_webview->lpVtbl->Navigate(g_ai_webview, targetUrl);
+    }
+
+    return S_OK;
+}
+
+static AIControllerCompletedHandler* CreateAIControllerCompletedHandler(HWND hWnd, const wchar_t *initialUrl) {
+    AIControllerCompletedHandler *handler = (AIControllerCompletedHandler*)malloc(sizeof(AIControllerCompletedHandler));
+    if (!handler) return NULL;
+
+    handler->vtbl.QueryInterface = AIController_QueryInterface;
+    handler->vtbl.AddRef = AIController_AddRef;
+    handler->vtbl.Release = AIController_Release;
+    handler->vtbl.Invoke = AIController_Invoke;
+
+    handler->lpVtblContainer.lpVtbl = &handler->vtbl;
+    handler->refCount = 1;
+    handler->hWnd = hWnd;
+    if (initialUrl && initialUrl[0] != L'\0') {
+        wcsncpy(handler->initialUrl, initialUrl, 1023);
+        handler->initialUrl[1023] = L'\0';
+    } else {
+        wcscpy(handler->initialUrl, L"https://gemini.google.com/app");
+    }
+
+    return handler;
+}
+
+static void EnsureAISidebarController(HWND hWnd, const wchar_t *initialUrl) {
+    if (g_ai_controller || g_ai_creating || !g_env) return;
+
+    g_ai_creating = TRUE;
+    AIControllerCompletedHandler *handler = CreateAIControllerCompletedHandler(hWnd, initialUrl);
+    if (handler) {
+        g_env->lpVtbl->CreateCoreWebView2Controller(
+            g_env,
+            hWnd,
+            (ICoreWebView2CreateCoreWebView2ControllerCompletedHandler*)handler
+        );
+        handler->lpVtblContainer.lpVtbl->Release(
+            (ICoreWebView2CreateCoreWebView2ControllerCompletedHandler*)handler
+        );
+    }
+}
+
+static void UpdateAISidebarBounds(int left, int top, int width, int height, BOOL visible, const wchar_t *url) {
+    g_ai_visible = visible;
+    g_ai_bounds.left = left;
+    g_ai_bounds.top = top;
+    g_ai_bounds.right = left + width;
+    g_ai_bounds.bottom = top + height;
+
+    if (url && url[0] != L'\0') {
+        wcsncpy(g_ai_pending_url, url, 1023);
+        g_ai_pending_url[1023] = L'\0';
+    }
+
+    if (!g_ai_controller) {
+        if (visible && !g_ai_creating && g_env && g_hWnd) {
+            EnsureAISidebarController(g_hWnd, g_ai_pending_url);
+        }
+        return;
+    }
+
+    if (g_ai_controller) {
+        if (width > 0 && height > 0) {
+            g_ai_controller->lpVtbl->put_Bounds(g_ai_controller, g_ai_bounds);
+        }
+        g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, visible);
+    }
+}
+
+static void SetAISidebarVisible(BOOL visible) {
+    g_ai_visible = visible;
+    if (g_ai_controller) {
+        g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, visible);
+    } else if (visible && g_env && g_hWnd) {
+        EnsureAISidebarController(g_hWnd, g_ai_pending_url);
+    }
+}
+
+static void NavigateAISidebar(const wchar_t *url) {
+    if (!url || url[0] == L'\0') return;
+    wcsncpy(g_ai_pending_url, url, 1023);
+    g_ai_pending_url[1023] = L'\0';
+
+    if (g_ai_webview) {
+        g_ai_webview->lpVtbl->Navigate(g_ai_webview, url);
+    } else if (g_env && g_hWnd) {
+        EnsureAISidebarController(g_hWnd, url);
+    }
+}
+
+static void ReloadAISidebar(void) {
+    if (g_ai_webview) {
+        g_ai_webview->lpVtbl->Reload(g_ai_webview);
+    }
+}
+
 typedef struct WebMessageReceivedHandler {
     ICoreWebView2WebMessageReceivedEventHandler lpVtblContainer;
     ICoreWebView2WebMessageReceivedEventHandlerVtbl vtbl;
@@ -210,6 +427,30 @@ static HRESULT STDMETHODCALLTYPE WebMsg_Invoke(
             if (wcslen(url) > 0) {
                 LaunchUpdaterAndRestart(self->hWnd, url);
             }
+        }
+        else if (wcsstr(messageRaw, L"setAISidebarBounds") != NULL) {
+            int left = ExtractJsonInt(messageRaw, L"left", 0);
+            int top = ExtractJsonInt(messageRaw, L"top", 0);
+            int width = ExtractJsonInt(messageRaw, L"width", 0);
+            int height = ExtractJsonInt(messageRaw, L"height", 0);
+            BOOL visible = ExtractJsonBool(messageRaw, L"visible", TRUE);
+            wchar_t url[1024] = { 0 };
+            ExtractJsonString(messageRaw, L"url", url, 1024);
+
+            UpdateAISidebarBounds(left, top, width, height, visible, url);
+        }
+        else if (wcsstr(messageRaw, L"setAISidebarVisible") != NULL) {
+            BOOL visible = ExtractJsonBool(messageRaw, L"visible", FALSE);
+            SetAISidebarVisible(visible);
+        }
+        else if (wcsstr(messageRaw, L"navigateAI") != NULL) {
+            wchar_t url[1024] = { 0 };
+            if (ExtractJsonString(messageRaw, L"url", url, 1024)) {
+                NavigateAISidebar(url);
+            }
+        }
+        else if (wcsstr(messageRaw, L"reloadAI") != NULL) {
+            ReloadAISidebar();
         }
         CoTaskMemFree(messageRaw);
     }
@@ -450,6 +691,10 @@ static HRESULT STDMETHODCALLTYPE Env_Invoke(
         return S_OK;
     }
 
+    g_env = createdEnvironment;
+    g_env->lpVtbl->AddRef(g_env);
+    g_hWnd = self->hWnd;
+
     ControllerCompletedHandler *controllerHandler = CreateControllerCompletedHandler(self->hWnd);
     if (controllerHandler) {
         createdEnvironment->lpVtbl->CreateCoreWebView2Controller(
@@ -566,6 +811,15 @@ void webview_host_resize(HWND hWnd) {
 }
 
 void webview_host_cleanup(void) {
+    if (g_ai_webview) {
+        g_ai_webview->lpVtbl->Release(g_ai_webview);
+        g_ai_webview = NULL;
+    }
+    if (g_ai_controller) {
+        g_ai_controller->lpVtbl->Close(g_ai_controller);
+        g_ai_controller->lpVtbl->Release(g_ai_controller);
+        g_ai_controller = NULL;
+    }
     if (g_webview) {
         g_webview->lpVtbl->Release(g_webview);
         g_webview = NULL;
@@ -574,6 +828,10 @@ void webview_host_cleanup(void) {
         g_controller->lpVtbl->Close(g_controller);
         g_controller->lpVtbl->Release(g_controller);
         g_controller = NULL;
+    }
+    if (g_env) {
+        g_env->lpVtbl->Release(g_env);
+        g_env = NULL;
     }
     if (g_hLoader) {
         FreeLibrary(g_hLoader);

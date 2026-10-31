@@ -47,6 +47,28 @@ let progressSaveTimer   = null;
 let isZenMode           = false;
 let zenIdleTimer        = null;
 
+// AI Companion State
+let isAiSidebarOpen     = false;
+let currentAiProvider   = 'gemini';
+const AI_PROVIDERS = {
+  gemini: {
+    name: 'Gemini',
+    url: 'https://gemini.google.com/app'
+  },
+  chatgpt: {
+    name: 'ChatGPT',
+    url: 'https://chatgpt.com'
+  },
+  claude: {
+    name: 'Claude',
+    url: 'https://claude.ai'
+  },
+  perplexity: {
+    name: 'Perplexity',
+    url: 'https://www.perplexity.ai'
+  }
+};
+
 // Application Version & Update State
 const CURRENT_APP_VERSION = 'v2.2.0';
 const GITHUB_REPO = 'supremeinori/my-little-library-2';
@@ -1326,6 +1348,98 @@ function resetZenIdleTimer() {
   }, 2500);
 }
 
+/* ─────────────────────────────────────────────
+   AI Companion Sidebar Controller
+   ───────────────────────────────────────────── */
+
+function toggleAiSidebar(forceState) {
+  const panel = $('readerPanel');
+  if (!panel || panel.classList.contains('hidden')) return;
+
+  const sidebar = $('aiSidebar');
+  const toggleBtn = $('readerAiToggleBtn');
+  if (!sidebar) return;
+
+  const nextState = (forceState !== undefined) ? forceState : !isAiSidebarOpen;
+  isAiSidebarOpen = nextState;
+
+  if (isAiSidebarOpen) {
+    sidebar.classList.remove('hidden');
+    if (toggleBtn) toggleBtn.classList.add('is-active');
+  } else {
+    sidebar.classList.add('hidden');
+    if (toggleBtn) toggleBtn.classList.remove('is-active');
+  }
+
+  // Trigger smooth resize of book spread and synchronize native WebView2 slot bounds
+  requestAnimationFrame(() => {
+    syncAiSidebarBounds();
+    handleWindowResize();
+  });
+}
+
+function switchAiProvider(providerKey) {
+  if (!AI_PROVIDERS[providerKey]) return;
+  currentAiProvider = providerKey;
+
+  document.querySelectorAll('.ai-tab').forEach(tab => {
+    if (tab.dataset.provider === providerKey) {
+      tab.classList.add('is-active');
+    } else {
+      tab.classList.remove('is-active');
+    }
+  });
+
+  const provider = AI_PROVIDERS[providerKey];
+  const placeholderText = $('aiSlotPlaceholderText');
+  if (placeholderText) {
+    placeholderText.textContent = `Menghubungkan ke ${provider.name}…`;
+  }
+
+  if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+    window.chrome.webview.postMessage(JSON.stringify({
+      action: 'navigateAI',
+      url: provider.url
+    }));
+  }
+
+  syncAiSidebarBounds();
+}
+
+function syncAiSidebarBounds() {
+  const panel = $('readerPanel');
+  const sidebar = $('aiSidebar');
+  const slot = $('aiWebViewSlot');
+
+  const isVisible = isAiSidebarOpen && panel && !panel.classList.contains('hidden') && !isZenMode;
+
+  if (!isVisible || !slot) {
+    if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+      window.chrome.webview.postMessage(JSON.stringify({
+        action: 'setAISidebarVisible',
+        visible: false
+      }));
+    }
+    return;
+  }
+
+  const rect = slot.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const payload = {
+    action: 'setAISidebarBounds',
+    visible: true,
+    left: Math.round(rect.left * dpr),
+    top: Math.round(rect.top * dpr),
+    width: Math.round(rect.width * dpr),
+    height: Math.round(rect.height * dpr),
+    url: AI_PROVIDERS[currentAiProvider] ? AI_PROVIDERS[currentAiProvider].url : 'https://gemini.google.com/app'
+  };
+
+  if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+    window.chrome.webview.postMessage(JSON.stringify(payload));
+  }
+}
+
 function handleZenMouseMove() {
   if (isZenMode) {
     resetZenIdleTimer();
@@ -1335,6 +1449,13 @@ function handleZenMouseMove() {
 function handleReaderKeydown(e) {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
+
+  // Toggle AI Companion Sidebar (Alt + A or Ctrl + \)
+  if ((e.altKey && (e.key === 'a' || e.key === 'A')) || (e.ctrlKey && e.key === '\\')) {
+    e.preventDefault();
+    toggleAiSidebar();
+    return;
+  }
 
   // Toggle Distraction-Free Focus Mode (F)
   if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -1381,6 +1502,9 @@ let resizeDebounce = null;
 function handleWindowResize() {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
+
+  syncAiSidebarBounds();
+
   if (currentReaderBook && currentReaderBook.fileType === 'pdf' && pdfReaderMode === 'flip' && currentFlipInstance) {
     clearTimeout(resizeDebounce);
     resizeDebounce = setTimeout(() => {
@@ -1556,6 +1680,7 @@ function closeReader() {
 
   $('readerPanel').classList.add('hidden');
   $('readerModeToggle').classList.add('hidden');
+  syncAiSidebarBounds();
   document.body.style.overflow = '';
   document.body.classList.remove('reader-open');
   const dockWrap = document.querySelector('.bottom-dock-wrap');
@@ -1792,6 +1917,41 @@ document.addEventListener('DOMContentLoaded', () => {
   if (zenExitBtn) {
     zenExitBtn.addEventListener('click', () => toggleZenMode(false));
   }
+
+  // AI Companion Controls
+  const aiToggleBtn = $('readerAiToggleBtn');
+  if (aiToggleBtn) {
+    aiToggleBtn.addEventListener('click', () => toggleAiSidebar());
+  }
+
+  const aiCloseBtn = $('aiCloseBtn');
+  if (aiCloseBtn) {
+    aiCloseBtn.addEventListener('click', () => toggleAiSidebar(false));
+  }
+
+  const aiReloadBtn = $('aiReloadBtn');
+  if (aiReloadBtn) {
+    aiReloadBtn.addEventListener('click', () => {
+      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+        window.chrome.webview.postMessage(JSON.stringify({ action: 'reloadAI' }));
+      }
+    });
+  }
+
+  const aiExternalBtn = $('aiExternalBtn');
+  if (aiExternalBtn) {
+    aiExternalBtn.addEventListener('click', () => {
+      const p = AI_PROVIDERS[currentAiProvider];
+      if (p) window.open(p.url, '_blank');
+    });
+  }
+
+  document.querySelectorAll('.ai-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const pKey = tab.dataset.provider;
+      if (pKey) switchAiProvider(pKey);
+    });
+  });
 
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && isZenMode) {
