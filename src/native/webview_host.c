@@ -32,7 +32,6 @@ static HWND g_hWnd = NULL;
 static HMODULE g_hLoader = NULL;
 
 static BOOL g_ai_visible = FALSE;
-static RECT g_ai_bounds = { 0, 0, 0, 0 };
 static BOOL g_ai_creating = FALSE;
 static wchar_t g_ai_pending_url[1024] = L"https://gemini.google.com/app";
 
@@ -146,16 +145,6 @@ static void LaunchUpdaterAndRestart(HWND hWnd, const wchar_t *downloadUrl) {
     }
 }
 
-static int ExtractJsonInt(const wchar_t *json, const wchar_t *key, int defaultVal) {
-    wchar_t pattern[128];
-    swprintf(pattern, 128, L"\"%ls\":", key);
-    const wchar_t *p = wcsstr(json, pattern);
-    if (!p) return defaultVal;
-    p += wcslen(pattern);
-    while (*p == L' ' || *p == L'\t') p++;
-    return _wtoi(p);
-}
-
 static BOOL ExtractJsonBool(const wchar_t *json, const wchar_t *key, BOOL defaultVal) {
     wchar_t pattern[128];
     swprintf(pattern, 128, L"\"%ls\":", key);
@@ -225,12 +214,14 @@ static ULONG STDMETHODCALLTYPE AIController_Release(ICoreWebView2CreateCoreWebVi
     return count;
 }
 
+static void ApplySplitLayout(void);
+
 static HRESULT STDMETHODCALLTYPE AIController_Invoke(
     ICoreWebView2CreateCoreWebView2ControllerCompletedHandler *This,
     HRESULT errorCode,
     ICoreWebView2Controller *createdController
 ) {
-    AIControllerCompletedHandler *self = (AIControllerCompletedHandler*)This;
+    (void)This;
     g_ai_creating = FALSE;
 
     if (FAILED(errorCode) || !createdController) {
@@ -246,15 +237,19 @@ static HRESULT STDMETHODCALLTYPE AIController_Invoke(
         if (SUCCEEDED(g_ai_webview->lpVtbl->get_Settings(g_ai_webview, &settings)) && settings) {
             settings->lpVtbl->put_AreDefaultContextMenusEnabled(settings, TRUE);
             settings->lpVtbl->put_IsStatusBarEnabled(settings, FALSE);
+
+            ICoreWebView2Settings2 *settings2 = NULL;
+            if (SUCCEEDED(settings->lpVtbl->QueryInterface(settings, &IID_ICoreWebView2Settings2, (void**)&settings2)) && settings2) {
+                settings2->lpVtbl->put_UserAgent(settings2, L"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0");
+                settings2->lpVtbl->Release(settings2);
+            }
+
             settings->lpVtbl->Release(settings);
         }
 
-        if (g_ai_bounds.right > g_ai_bounds.left && g_ai_bounds.bottom > g_ai_bounds.top) {
-            g_ai_controller->lpVtbl->put_Bounds(g_ai_controller, g_ai_bounds);
-        }
-        g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, g_ai_visible);
+        ApplySplitLayout();
 
-        const wchar_t *targetUrl = (self->initialUrl[0] != L'\0') ? self->initialUrl : L"https://gemini.google.com/app";
+        const wchar_t *targetUrl = (g_ai_pending_url[0] != L'\0') ? g_ai_pending_url : L"https://gemini.google.com/app";
         g_ai_webview->lpVtbl->Navigate(g_ai_webview, targetUrl);
     }
 
@@ -289,50 +284,70 @@ static void EnsureAISidebarController(HWND hWnd, const wchar_t *initialUrl) {
     g_ai_creating = TRUE;
     AIControllerCompletedHandler *handler = CreateAIControllerCompletedHandler(hWnd, initialUrl);
     if (handler) {
-        g_env->lpVtbl->CreateCoreWebView2Controller(
+        HRESULT hr = g_env->lpVtbl->CreateCoreWebView2Controller(
             g_env,
             hWnd,
             (ICoreWebView2CreateCoreWebView2ControllerCompletedHandler*)handler
         );
+        if (FAILED(hr)) {
+            g_ai_creating = FALSE;
+        }
         handler->lpVtblContainer.lpVtbl->Release(
             (ICoreWebView2CreateCoreWebView2ControllerCompletedHandler*)handler
         );
     }
 }
 
-static void UpdateAISidebarBounds(int left, int top, int width, int height, BOOL visible, const wchar_t *url) {
+static void ApplySplitLayout(void) {
+    if (!g_hWnd || !g_controller) return;
+
+    RECT client;
+    GetClientRect(g_hWnd, &client);
+
+    int totalWidth = client.right - client.left;
+    int totalHeight = client.bottom - client.top;
+
+    if (g_ai_visible) {
+        int sidebarWidth = 480;
+        if (sidebarWidth > totalWidth - 360) {
+            sidebarWidth = totalWidth * 40 / 100;
+        }
+        if (sidebarWidth < 300) sidebarWidth = 300;
+        if (sidebarWidth > totalWidth - 150) sidebarWidth = totalWidth / 2;
+
+        int mainWidth = totalWidth - sidebarWidth;
+
+        RECT mainBounds = { 0, 0, mainWidth, totalHeight };
+        RECT aiBounds   = { mainWidth, 0, totalWidth, totalHeight };
+
+        g_controller->lpVtbl->put_Bounds(g_controller, mainBounds);
+
+        if (g_ai_controller) {
+            g_ai_controller->lpVtbl->put_Bounds(g_ai_controller, aiBounds);
+            g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, TRUE);
+        } else {
+            EnsureAISidebarController(g_hWnd, g_ai_pending_url);
+        }
+    } else {
+        g_controller->lpVtbl->put_Bounds(g_controller, client);
+        if (g_ai_controller) {
+            g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, FALSE);
+        }
+    }
+}
+
+static void SetAISidebarVisible(BOOL visible, const wchar_t *url) {
     g_ai_visible = visible;
-    g_ai_bounds.left = left;
-    g_ai_bounds.top = top;
-    g_ai_bounds.right = left + width;
-    g_ai_bounds.bottom = top + height;
 
     if (url && url[0] != L'\0') {
         wcsncpy(g_ai_pending_url, url, 1023);
         g_ai_pending_url[1023] = L'\0';
     }
 
-    if (!g_ai_controller) {
-        if (visible && !g_ai_creating && g_env && g_hWnd) {
-            EnsureAISidebarController(g_hWnd, g_ai_pending_url);
-        }
-        return;
-    }
+    ApplySplitLayout();
 
-    if (g_ai_controller) {
-        if (width > 0 && height > 0) {
-            g_ai_controller->lpVtbl->put_Bounds(g_ai_controller, g_ai_bounds);
-        }
-        g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, visible);
-    }
-}
-
-static void SetAISidebarVisible(BOOL visible) {
-    g_ai_visible = visible;
-    if (g_ai_controller) {
-        g_ai_controller->lpVtbl->put_IsVisible(g_ai_controller, visible);
-    } else if (visible && g_env && g_hWnd) {
-        EnsureAISidebarController(g_hWnd, g_ai_pending_url);
+    if (visible && g_ai_webview && url && url[0] != L'\0') {
+        g_ai_webview->lpVtbl->Navigate(g_ai_webview, url);
     }
 }
 
@@ -428,20 +443,17 @@ static HRESULT STDMETHODCALLTYPE WebMsg_Invoke(
                 LaunchUpdaterAndRestart(self->hWnd, url);
             }
         }
+        else if (wcsstr(messageRaw, L"setAISidebarVisible") != NULL) {
+            BOOL visible = ExtractJsonBool(messageRaw, L"visible", FALSE);
+            wchar_t url[1024] = { 0 };
+            ExtractJsonString(messageRaw, L"url", url, 1024);
+            SetAISidebarVisible(visible, url);
+        }
         else if (wcsstr(messageRaw, L"setAISidebarBounds") != NULL) {
-            int left = ExtractJsonInt(messageRaw, L"left", 0);
-            int top = ExtractJsonInt(messageRaw, L"top", 0);
-            int width = ExtractJsonInt(messageRaw, L"width", 0);
-            int height = ExtractJsonInt(messageRaw, L"height", 0);
             BOOL visible = ExtractJsonBool(messageRaw, L"visible", TRUE);
             wchar_t url[1024] = { 0 };
             ExtractJsonString(messageRaw, L"url", url, 1024);
-
-            UpdateAISidebarBounds(left, top, width, height, visible, url);
-        }
-        else if (wcsstr(messageRaw, L"setAISidebarVisible") != NULL) {
-            BOOL visible = ExtractJsonBool(messageRaw, L"visible", FALSE);
-            SetAISidebarVisible(visible);
+            SetAISidebarVisible(visible, url);
         }
         else if (wcsstr(messageRaw, L"navigateAI") != NULL) {
             wchar_t url[1024] = { 0 };
@@ -803,11 +815,8 @@ BOOL webview_host_init(HWND hWnd) {
 }
 
 void webview_host_resize(HWND hWnd) {
-    if (g_controller) {
-        RECT bounds;
-        GetClientRect(hWnd, &bounds);
-        g_controller->lpVtbl->put_Bounds(g_controller, bounds);
-    }
+    (void)hWnd;
+    ApplySplitLayout();
 }
 
 void webview_host_cleanup(void) {

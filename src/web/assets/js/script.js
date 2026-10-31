@@ -1304,6 +1304,16 @@ function toggleZenMode(forceState) {
     if (zenBtn) zenBtn.classList.add('is-active');
     if (zenHud) zenHud.classList.remove('hidden');
 
+    // Temporarily hide AI companion in zen mode
+    if (isAiSidebarOpen) {
+      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+        window.chrome.webview.postMessage(JSON.stringify({
+          action: 'setAISidebarVisible',
+          visible: false
+        }));
+      }
+    }
+
     // Request Fullscreen
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -1322,6 +1332,17 @@ function toggleZenMode(forceState) {
       zenIdleTimer = null;
     }
     panel.removeEventListener('mousemove', handleZenMouseMove);
+
+    // Restore AI companion if it was open before zen mode
+    if (isAiSidebarOpen) {
+      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+        window.chrome.webview.postMessage(JSON.stringify({
+          action: 'setAISidebarVisible',
+          visible: true,
+          url: AI_PROVIDERS[currentAiProvider] ? AI_PROVIDERS[currentAiProvider].url : 'https://gemini.google.com/app'
+        }));
+      }
+    }
 
     // Exit Fullscreen if active
     if (document.fullscreenElement && document.exitFullscreen) {
@@ -1356,45 +1377,46 @@ function toggleAiSidebar(forceState) {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
 
-  const sidebar = $('aiSidebar');
-  const toggleBtn = $('readerAiToggleBtn');
-  if (!sidebar) return;
-
   const nextState = (forceState !== undefined) ? forceState : !isAiSidebarOpen;
   isAiSidebarOpen = nextState;
 
+  const toggleBtn = $('readerAiToggleBtn');
+  const bar = $('aiCompanionBar');
+
   if (isAiSidebarOpen) {
-    sidebar.classList.remove('hidden');
     if (toggleBtn) toggleBtn.classList.add('is-active');
+    if (bar) bar.classList.remove('hidden');
   } else {
-    sidebar.classList.add('hidden');
     if (toggleBtn) toggleBtn.classList.remove('is-active');
+    if (bar) bar.classList.add('hidden');
   }
 
-  // Trigger smooth resize of book spread and synchronize native WebView2 slot bounds
-  requestAnimationFrame(() => {
-    syncAiSidebarBounds();
+  if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+    window.chrome.webview.postMessage(JSON.stringify({
+      action: 'setAISidebarVisible',
+      visible: isAiSidebarOpen,
+      url: AI_PROVIDERS[currentAiProvider] ? AI_PROVIDERS[currentAiProvider].url : 'https://gemini.google.com/app'
+    }));
+  }
+
+  setTimeout(() => {
     handleWindowResize();
-  });
+  }, 100);
 }
 
 function switchAiProvider(providerKey) {
   if (!AI_PROVIDERS[providerKey]) return;
   currentAiProvider = providerKey;
 
-  document.querySelectorAll('.ai-tab').forEach(tab => {
-    if (tab.dataset.provider === providerKey) {
-      tab.classList.add('is-active');
+  document.querySelectorAll('.ai-pill').forEach(pill => {
+    if (pill.dataset.provider === providerKey) {
+      pill.classList.add('is-active');
     } else {
-      tab.classList.remove('is-active');
+      pill.classList.remove('is-active');
     }
   });
 
   const provider = AI_PROVIDERS[providerKey];
-  const placeholderText = $('aiSlotPlaceholderText');
-  if (placeholderText) {
-    placeholderText.textContent = `Menghubungkan ke ${provider.name}…`;
-  }
 
   if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
     window.chrome.webview.postMessage(JSON.stringify({
@@ -1402,42 +1424,10 @@ function switchAiProvider(providerKey) {
       url: provider.url
     }));
   }
-
-  syncAiSidebarBounds();
 }
 
 function syncAiSidebarBounds() {
-  const panel = $('readerPanel');
-  const sidebar = $('aiSidebar');
-  const slot = $('aiWebViewSlot');
-
-  const isVisible = isAiSidebarOpen && panel && !panel.classList.contains('hidden') && !isZenMode;
-
-  if (!isVisible || !slot) {
-    if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
-      window.chrome.webview.postMessage(JSON.stringify({
-        action: 'setAISidebarVisible',
-        visible: false
-      }));
-    }
-    return;
-  }
-
-  const rect = slot.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  const payload = {
-    action: 'setAISidebarBounds',
-    visible: true,
-    left: Math.round(rect.left * dpr),
-    top: Math.round(rect.top * dpr),
-    width: Math.round(rect.width * dpr),
-    height: Math.round(rect.height * dpr),
-    url: AI_PROVIDERS[currentAiProvider] ? AI_PROVIDERS[currentAiProvider].url : 'https://gemini.google.com/app'
-  };
-
-  if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
-    window.chrome.webview.postMessage(JSON.stringify(payload));
-  }
+  // Handled automatically by native Win32 ApplySplitLayout
 }
 
 function handleZenMouseMove() {
@@ -1660,6 +1650,9 @@ async function openReader(bookId) {
 function closeReader() {
   if (isZenMode) {
     toggleZenMode(false);
+  }
+  if (isAiSidebarOpen) {
+    toggleAiSidebar(false);
   }
 
   // Flush any pending progress save immediately
@@ -1946,7 +1939,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  document.querySelectorAll('.ai-tab').forEach(tab => {
+  document.querySelectorAll('.ai-pill').forEach(tab => {
     tab.addEventListener('click', () => {
       const pKey = tab.dataset.provider;
       if (pKey) switchAiProvider(pKey);

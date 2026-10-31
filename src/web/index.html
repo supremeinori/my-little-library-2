@@ -266,7 +266,7 @@
             <h3 class="about-app-name">My Little Library</h3>
             <p class="about-app-desc">Personal Digital Archive & 3D Physical Flipbook Reader</p>
             <div class="about-meta-row">
-              <span class="badge badge-version" id="aboutCurrentVersion">v2.1.1</span>
+              <span class="badge badge-version" id="aboutCurrentVersion">v2.2.0</span>
               <span class="badge badge-file">Win32 C + WebView2</span>
               <span class="badge badge-category">100% Offline</span>
             </div>
@@ -373,6 +373,38 @@
         <span class="reader-divider">|</span>
         <span class="reader-author" id="readerAuthor"></span>
       </div>
+
+      <!-- AI Provider Switcher Bar (Visible when AI Companion is open) -->
+      <div class="ai-topbar-bar hidden" id="aiCompanionBar">
+        <div class="ai-provider-pills">
+          <button type="button" class="ai-pill is-active" data-provider="gemini" title="Google Gemini">
+            <span>♊ Gemini</span>
+          </button>
+          <button type="button" class="ai-pill" data-provider="chatgpt" title="OpenAI ChatGPT">
+            <span>🟢 ChatGPT</span>
+          </button>
+          <button type="button" class="ai-pill" data-provider="claude" title="Anthropic Claude">
+            <span>🟣 Claude</span>
+          </button>
+          <button type="button" class="ai-pill" data-provider="perplexity" title="Perplexity AI">
+            <span>🔍 Perplexity</span>
+          </button>
+        </div>
+        <div class="ai-topbar-actions">
+          <span class="ai-snip-hint" title="Tekan Win + Shift + S untuk screenshot cuplikan buku, lalu Ctrl + V di chat AI!">
+            📸 Win+Shift+S
+          </span>
+          <button type="button" class="ai-icon-btn" id="aiReloadBtn" title="Reload AI Page">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          </button>
+          <button type="button" class="ai-icon-btn" id="aiExternalBtn" title="Open in default browser">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </button>
+          <button type="button" class="ai-icon-btn" id="aiCloseBtn" title="Tutup AI Companion (Alt + A)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="reader-controls">
         <!-- PDF Reader Mode Toggle (Flipbook vs Standard) -->
         <div class="reader-mode-toggle hidden" id="readerModeToggle">
@@ -404,51 +436,7 @@
         Exit Focus
       </button>
     </div>
-    <div class="reader-layout" id="readerLayout">
-      <div class="reader-body" id="readerBody"></div>
-      <div class="ai-sidebar hidden" id="aiSidebar">
-        <div class="ai-sidebar-topbar">
-          <div class="ai-provider-tabs">
-            <button type="button" class="ai-tab is-active" data-provider="gemini" title="Google Gemini">
-              <span>♊ Gemini</span>
-            </button>
-            <button type="button" class="ai-tab" data-provider="chatgpt" title="OpenAI ChatGPT">
-              <span>🟢 ChatGPT</span>
-            </button>
-            <button type="button" class="ai-tab" data-provider="claude" title="Anthropic Claude">
-              <span>🟣 Claude</span>
-            </button>
-            <button type="button" class="ai-tab" data-provider="perplexity" title="Perplexity AI">
-              <span>🔍 Perplexity</span>
-            </button>
-          </div>
-          <div class="ai-sidebar-actions">
-            <button type="button" class="ai-icon-btn" id="aiReloadBtn" title="Reload AI Page">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            </button>
-            <button type="button" class="ai-icon-btn" id="aiExternalBtn" title="Open in default browser">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </button>
-            <button type="button" class="ai-icon-btn" id="aiCloseBtn" title="Close AI Sidebar (Alt + A)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="ai-helper-banner">
-          <span class="ai-helper-icon">📸</span>
-          <span class="ai-helper-text">Tekan <strong>Win + Shift + S</strong> untuk screenshot cuplikan buku, lalu <strong>Ctrl + V</strong> di chat AI!</span>
-        </div>
-
-        <!-- The native WebView2 controller is docked directly over this slot -->
-        <div class="ai-webview-slot" id="aiWebViewSlot">
-          <div class="ai-slot-placeholder" id="aiSlotPlaceholder">
-            <div class="ai-slot-spinner"></div>
-            <p id="aiSlotPlaceholderText">Menghubungkan ke AI Companion…</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="reader-body" id="readerBody"></div>
   </div>
   <div class="reader-overlay hidden" id="readerOverlay"></div>
 
