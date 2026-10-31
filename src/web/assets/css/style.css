@@ -213,33 +213,6 @@ input, select, textarea {
   gap: 12px;
 }
 
-.header-add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  background: var(--border-dark);
-  color: var(--text-inverse);
-  border: 1.5px solid var(--border-dark);
-  border-radius: var(--radius);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  box-shadow: 3px 3px 0px var(--manga-shadow-color);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.header-add-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0px var(--manga-shadow-color);
-}
-
-.header-add-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0px var(--manga-shadow-color);
-}
-
 /* â”€â”€ Floating Bottom Pill Dock Navigation (100% Solid & Clean) â”€â”€ */
 .bottom-dock-wrap {
   position: fixed;
@@ -1751,12 +1724,21 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
 }
 
 .flipbook-wrapper.is-zoomed {
-  cursor: grab;
+  cursor: default;
 }
 
-.flipbook-wrapper.is-panning {
-  cursor: grabbing;
-  user-select: none;
+/* Ctrl + Left Click Panning Modes */
+.flipbook-stage.ctrl-active,
+.flipbook-stage.ctrl-active * {
+  cursor: grab !important;
+}
+
+.flipbook-stage.ctrl-active.is-panning,
+.flipbook-stage.ctrl-active.is-panning *,
+.flipbook-wrapper.is-panning,
+.flipbook-wrapper.is-panning * {
+  cursor: grabbing !important;
+  user-select: none !important;
 }
 
 .flipbook-wrapper::-webkit-scrollbar {

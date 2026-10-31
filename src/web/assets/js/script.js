@@ -756,7 +756,7 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
           </button>
         </div>
 
-        <span class="flipbook-hint">Drag corners to turn &bull; Ctrl+Scroll to zoom</span>
+        <span class="flipbook-hint">Ctrl+Scroll to zoom &bull; Ctrl+Click to pan</span>
       </div>
     </div>
   `;
@@ -877,7 +877,7 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
         startPage: targetPage,
         startZIndex: 1,
         autoSize: false,
-        showPageCorners: true,
+        showPageCorners: false, // Corner curl preview on hover disabled; flips occur only on explicit user click/drag
         flippingTime: 650
       });
 
@@ -1010,39 +1010,44 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
         }, { passive: false });
       }
 
-      // Pan to drag when zoomed in
+      // Pan to drag with Ctrl + Left Click (or middle click)
       const wrapper = document.getElementById('flipbookWrapper');
-      if (wrapper) {
+      if (wrapper && stage) {
         let isPanning = false;
         let startX = 0, startY = 0;
         let scrollLeft = 0, scrollTop = 0;
 
+        // Use capture phase to intercept Ctrl + Left Click before St.PageFlip
         wrapper.addEventListener('mousedown', (e) => {
-          if (currentZoom > 1.05 && (e.target === wrapper || e.target.classList.contains('flipbook-container') || e.button === 1)) {
+          const isCtrlPan = (e.ctrlKey && e.button === 0);
+          const isMiddlePan = (e.button === 1);
+          if (isCtrlPan || isMiddlePan) {
+            e.preventDefault();
+            e.stopPropagation();
             isPanning = true;
             wrapper.classList.add('is-panning');
-            startX = e.pageX - wrapper.offsetLeft;
-            startY = e.pageY - wrapper.offsetTop;
+            stage.classList.add('is-panning');
+            startX = e.clientX;
+            startY = e.clientY;
             scrollLeft = wrapper.scrollLeft;
             scrollTop = wrapper.scrollTop;
           }
-        });
+        }, true);
 
         window.addEventListener('mousemove', (e) => {
           if (!isPanning) return;
           e.preventDefault();
-          const x = e.pageX - wrapper.offsetLeft;
-          const y = e.pageY - wrapper.offsetTop;
-          const walkX = (x - startX) * 1.2;
-          const walkY = (y - startY) * 1.2;
-          wrapper.scrollLeft = scrollLeft - walkX;
-          wrapper.scrollTop = scrollTop - walkY;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          wrapper.scrollLeft = scrollLeft - dx;
+          wrapper.scrollTop = scrollTop - dy;
         });
 
         window.addEventListener('mouseup', () => {
           if (isPanning) {
             isPanning = false;
             wrapper.classList.remove('is-panning');
+            stage.classList.remove('is-panning');
           }
         });
       }
@@ -1638,6 +1643,21 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (!$('deleteModal').classList.contains('hidden')) {
         closeModal('deleteModal');
       }
+    }
+  });
+
+  // Dynamic pan cursor indicator when holding Ctrl over reader
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Control') {
+      const stage = document.getElementById('flipbookStage');
+      if (stage) stage.classList.add('ctrl-active');
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'Control') {
+      const stage = document.getElementById('flipbookStage');
+      if (stage) stage.classList.remove('ctrl-active');
     }
   });
 

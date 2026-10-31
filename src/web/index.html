@@ -17,18 +17,12 @@
         <span class="brand-tag">Personal Archive</span>
       </div>
     </div>
-    <div class="header-actions">
-      <button class="header-add-btn manga-shadow" id="headerAddBtn" title="Add Book to Library">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span>Add Book</span>
-      </button>
-    </div>
   </header>
 
   <!-- Main content area -->
   <main class="main" id="mainContent">
 
-    <!-- ── DASHBOARD VIEW ── -->
+    <!-- â”€â”€ DASHBOARD VIEW â”€â”€ -->
     <section class="view" id="view-dashboard">
       <header class="view-header">
         <h1 class="view-title">Library Overview</h1>
@@ -82,7 +76,7 @@
       </div>
     </section>
 
-    <!-- ── COLLECTION VIEW ── -->
+    <!-- â”€â”€ COLLECTION VIEW â”€â”€ -->
     <section class="view hidden" id="view-collection">
       <header class="view-header view-header--row">
         <div>
@@ -99,7 +93,7 @@
       <div class="filters-bar">
         <div class="search-wrap">
           <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="search" id="searchInput" class="search-input" placeholder="Search by title, author, or notes…" aria-label="Search catalog" />
+          <input type="search" id="searchInput" class="search-input" placeholder="Search by title, author, or notesâ€¦" aria-label="Search catalog" />
         </div>
         <div class="filters-select-wrap">
           <select id="filterCategory" class="filter-select" aria-label="Filter by subject">
@@ -128,7 +122,7 @@
 
       <!-- Contextual Empty State -->
       <div class="empty-state hidden" id="emptyState">
-        <div class="empty-mark">—</div>
+        <div class="empty-mark">â€”</div>
         <h3 class="empty-title" id="emptyTitle">No titles found.</h3>
         <p class="empty-sub" id="emptySub">Your personal collection is currently empty.</p>
         <button class="btn btn-primary" id="emptyAddBtn">Add First Book</button>
@@ -137,7 +131,7 @@
 
   </main>
 
-  <!-- ── BOOK FORM MODAL ── -->
+  <!-- â”€â”€ BOOK FORM MODAL â”€â”€ -->
   <div class="modal-backdrop hidden" id="formModal" role="dialog" aria-modal="true" aria-labelledby="formModalTitle">
     <div class="modal">
       <div class="modal-header">
@@ -227,7 +221,7 @@
 
         <div class="form-group">
           <label class="form-label" for="fieldNotes">Personal Notes</label>
-          <textarea id="fieldNotes" class="form-input form-textarea" placeholder="Key ideas, shelf location, or reading notes…" maxlength="1000" rows="3"></textarea>
+          <textarea id="fieldNotes" class="form-input form-textarea" placeholder="Key ideas, shelf location, or reading notesâ€¦" maxlength="1000" rows="3"></textarea>
         </div>
 
         <div class="modal-actions">
@@ -238,7 +232,7 @@
     </div>
   </div>
 
-  <!-- ── DELETE CONFIRMATION MODAL ── -->
+  <!-- â”€â”€ DELETE CONFIRMATION MODAL â”€â”€ -->
   <div class="modal-backdrop hidden" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
     <div class="modal modal--sm">
       <div class="modal-header">
@@ -255,7 +249,7 @@
     </div>
   </div>
 
-  <!-- ── HIDDEN QUICK COVER UPLOAD INPUT ── -->
+  <!-- â”€â”€ HIDDEN QUICK COVER UPLOAD INPUT â”€â”€ -->
   <input type="file" id="quickCoverInput" accept="image/png,image/jpeg,image/webp" class="hidden" />
 
   <!-- Floating Bottom Pill Dock Navigation -->
@@ -283,7 +277,7 @@
     </div>
   </nav>
 
-  <!-- ── INTEGRATED READER PANEL ── -->
+  <!-- â”€â”€ INTEGRATED READER PANEL â”€â”€ -->
   <div class="reader-panel hidden" id="readerPanel">
     <div class="reader-topbar">
       <div class="reader-book-info">
