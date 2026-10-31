@@ -1027,6 +1027,9 @@ async function openReader(bookId) {
   // Reveal reader panel early so viewport geometry and client dimensions are exact
   $('readerPanel').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  document.body.classList.add('reader-open');
+  const dockWrap = document.querySelector('.bottom-dock-wrap');
+  if (dockWrap) dockWrap.style.display = 'none';
   window.addEventListener('keydown', handleReaderKeydown);
   window.addEventListener('resize', handleWindowResize);
 
@@ -1104,6 +1107,9 @@ function closeReader() {
   $('readerPanel').classList.add('hidden');
   $('readerModeToggle').classList.add('hidden');
   document.body.style.overflow = '';
+  document.body.classList.remove('reader-open');
+  const dockWrap = document.querySelector('.bottom-dock-wrap');
+  if (dockWrap) dockWrap.style.display = '';
   window.removeEventListener('keydown', handleReaderKeydown);
   window.removeEventListener('resize', handleWindowResize);
 

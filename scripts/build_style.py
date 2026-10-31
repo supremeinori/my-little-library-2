@@ -20,6 +20,9 @@ if tail_media_idx != -1:
 else:
     reader_css_clean = reader_css
 
+# Ensure Reader Subsystem has top z-index (2500) and proper constraints
+reader_css_clean = reader_css_clean.replace("z-index: 600;", "z-index: 2500;")
+
 new_css = f'''/* ─────────────────────────────────────────────────────────────
    My Little Library — Black & White Editorial Stylesheet
    Pure monochrome, typography-led, manga ink signature design system.
@@ -272,7 +275,17 @@ input, select, textarea {{
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  z-index: 900;
+  z-index: 500;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}}
+
+/* Strictly hide floating dock when reading to prevent overlap with flipbook controls */
+body.reader-open .bottom-dock-wrap,
+body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {{
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }}
 
 .bottom-dock {{
@@ -465,6 +478,7 @@ input, select, textarea {{
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }}
 
 .desk-card-title {{
@@ -473,11 +487,15 @@ input, select, textarea {{
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }}
 
 .desk-card-author {{
   font-size: 13px;
   color: var(--text-secondary);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }}
 
 .desk-card-footer {{
@@ -616,6 +634,7 @@ input, select, textarea {{
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
+  min-width: 0;
 }}
 
 .recent-title {{
@@ -626,6 +645,7 @@ input, select, textarea {{
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }}
 
 .recent-author {{
@@ -634,6 +654,7 @@ input, select, textarea {{
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }}
 
 .recent-badge-wrap {{
@@ -929,19 +950,33 @@ input, select, textarea {{
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }}
 
 .book-title {{
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }}
 
 .book-author {{
   font-size: 13px;
   color: var(--text-secondary);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }}
 
 .book-notes {{
@@ -952,6 +987,10 @@ input, select, textarea {{
   padding: 6px 10px;
   margin-top: 8px;
   font-style: italic;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-height: 80px;
+  overflow-y: auto;
 }}
 
 .book-card-actions {{
@@ -1373,6 +1412,7 @@ input, select, textarea {{
   line-height: 1.4;
 }}
 
+/* ── Refined Reader Subsystem ── */
 {reader_css_clean}
 
 /* ── Responsive Reflow ── */
@@ -1412,4 +1452,4 @@ input, select, textarea {{
 with open(style_path, "w", encoding="utf-8") as f:
     f.write(new_css)
 
-print("style.css rewritten with clean solid dock & manga panel shadows.")
+print("style.css updated successfully with reader dock concealment and overflow protections.")
