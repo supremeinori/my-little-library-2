@@ -105,6 +105,7 @@ function showView(viewName) {
   currentView = viewName;
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.dock-tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === viewName));
 
   const activeView = $('view-' + viewName);
   if (activeView) activeView.classList.remove('hidden');
@@ -119,13 +120,17 @@ function showView(viewName) {
 }
 
 function openMobileSidebar() {
-  $('sidebar').classList.add('open');
-  $('sidebarOverlay').classList.add('open');
+  const sb = $('sidebar');
+  const ov = $('sidebarOverlay');
+  if (sb) sb.classList.add('open');
+  if (ov) ov.classList.add('open');
 }
 
 function closeMobileSidebar() {
-  $('sidebar').classList.remove('open');
-  $('sidebarOverlay').classList.remove('open');
+  const sb = $('sidebar');
+  const ov = $('sidebarOverlay');
+  if (sb) sb.classList.remove('open');
+  if (ov) ov.classList.remove('open');
 }
 
 /* ─────────────────────────────────────────────
@@ -154,7 +159,7 @@ function renderDashboard() {
     activeReadingSection.classList.remove('hidden');
     activeBooks.forEach(book => {
       const card = document.createElement('article');
-      card.className = 'desk-card';
+      card.className = 'desk-card manga-shadow';
       const displayTitle = formatDisplayTitle(book.title);
 
       card.innerHTML = `
@@ -281,7 +286,7 @@ function renderCollection() {
 
 function buildBookCard(book) {
   const card = document.createElement('article');
-  card.className = 'book-card';
+  card.className = 'book-card manga-shadow';
   card.dataset.id = book.id;
 
   const displayTitle = formatDisplayTitle(book.title);
@@ -1161,14 +1166,32 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', () => {
   // Theme initialization
   initTheme();
-  $('themeToggleBtn').addEventListener('click', toggleTheme);
+  const themeToggle = $('themeToggleBtn');
+  if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+
+  const dockThemeToggle = $('dockThemeToggle');
+  if (dockThemeToggle) dockThemeToggle.addEventListener('click', toggleTheme);
+
+  const headerAdd = $('headerAddBtn');
+  if (headerAdd) headerAdd.addEventListener('click', openAddModal);
+
+  const dockAdd = $('dockAddBtn');
+  if (dockAdd) dockAdd.addEventListener('click', openAddModal);
+
   // Navigation
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => showView(btn.dataset.view));
   });
 
-  $('hamburgerBtn').addEventListener('click', openMobileSidebar);
-  $('sidebarOverlay').addEventListener('click', closeMobileSidebar);
+  document.querySelectorAll('.dock-tab').forEach(btn => {
+    btn.addEventListener('click', () => showView(btn.dataset.tab));
+  });
+
+  const hamburger = $('hamburgerBtn');
+  if (hamburger) hamburger.addEventListener('click', openMobileSidebar);
+
+  const sidebarOv = $('sidebarOverlay');
+  if (sidebarOv) sidebarOv.addEventListener('click', closeMobileSidebar);
 
   // Search & Filter
   $('searchInput').addEventListener('input', renderCollection);
