@@ -8,47 +8,22 @@
 </head>
 <body>
 
-  <!-- Sidebar Navigation -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-monogram">MLL</div>
-      <div class="brand-details">
-        <span class="brand-name">Little Library</span>
+  <!-- Top Application Header with Dynamic Ink Sketch Logo -->
+  <header class="app-header">
+    <div class="header-brand">
+      <img src="assets/img/logo.png" alt="My Little Library Logo" class="brand-logo-img" />
+      <div class="brand-titles">
+        <span class="brand-name">My Little Library</span>
         <span class="brand-tag">Personal Archive</span>
       </div>
     </div>
-
-    <nav class="sidebar-nav">
-      <button class="nav-item active" data-view="dashboard">
-        <span class="nav-label">Dashboard</span>
+    <div class="header-actions">
+      <button class="header-add-btn manga-shadow" id="headerAddBtn" title="Add Book to Library">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Add Book</span>
       </button>
-      <button class="nav-item" data-view="collection">
-        <span class="nav-label">Collection</span>
-      </button>
-    </nav>
-
-    <div class="sidebar-footer">
-      <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark and light mode" title="Switch Theme">
-        <svg class="theme-icon theme-icon--dark" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        <svg class="theme-icon theme-icon--light" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <span id="themeToggleText">Dark Mode</span>
-      </button>
-      <div class="sidebar-meta-row">
-        <span class="footer-platform">Windows Edition</span>
-        <span class="footer-version">v2.0.0</span>
-      </div>
     </div>
-  </aside>
-
-  <!-- Mobile header -->
-  <header class="mobile-header">
-    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-    <span class="mobile-brand">My Little Library</span>
   </header>
-
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- Main content area -->
   <main class="main" id="mainContent">
@@ -282,6 +257,31 @@
 
   <!-- ── HIDDEN QUICK COVER UPLOAD INPUT ── -->
   <input type="file" id="quickCoverInput" accept="image/png,image/jpeg,image/webp" class="hidden" />
+
+  <!-- Floating Bottom Pill Dock Navigation -->
+  <nav class="bottom-dock-wrap" aria-label="Main Navigation">
+    <div class="bottom-dock manga-shadow">
+      <button class="dock-tab is-active" id="dockTabOverview" data-tab="dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Overview</span>
+      </button>
+      <button class="dock-tab" id="dockTabCatalog" data-tab="collection">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>All Books</span>
+      </button>
+
+      <div class="dock-divider"></div>
+
+      <button class="dock-action-btn" id="dockAddBtn" title="Add Book" aria-label="Add Book">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+
+      <button class="dock-theme-btn" id="dockThemeToggle" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+        <svg class="dock-theme-icon dock-theme-icon--moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="dock-theme-icon dock-theme-icon--sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </nav>
 
   <!-- ── INTEGRATED READER PANEL ── -->
   <div class="reader-panel hidden" id="readerPanel">
