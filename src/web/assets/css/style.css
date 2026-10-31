@@ -861,6 +861,13 @@ input, select, textarea {
   color: var(--text-secondary);
 }
 
+.badge-status-new {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-dark);
+  color: var(--text);
+  font-weight: 500;
+}
+
 .badge-status-finished {
   background: var(--text);
   color: var(--text-inverse);

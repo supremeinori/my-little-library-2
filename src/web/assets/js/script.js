@@ -7,9 +7,10 @@
 /* ─────────────────────────────────────────────
    Constants
    ───────────────────────────────────────────── */
-const CATEGORIES = ['Psychology', 'Philosophy', 'Literature', 'Cinema', 'Technology', 'Other'];
+const CATEGORIES = ['Any', 'Psychology', 'Philosophy', 'Literature', 'Cinema', 'Technology', 'Other'];
 
 const STATUS_CLASS = {
+  'New':          'badge-status-new',
   'Want to Read': 'badge-status-want',
   'Reading':      'badge-status-reading',
   'Finished':     'badge-status-finished',
@@ -443,6 +444,8 @@ function openAddForm() {
   $('formModalTitle').textContent = 'Add Book';
   $('formSaveBtn').textContent    = 'Save Book';
   $('bookForm').reset();
+  $('fieldCategory').value        = 'Any';
+  $('fieldStatus').value          = 'New';
   clearFormErrors();
   resetFileState();
   $('fileUploadGroup').classList.remove('hidden');
@@ -462,8 +465,8 @@ function openEditForm(id) {
   $('bookId').value        = book.id;
   $('fieldTitle').value    = book.title;
   $('fieldAuthor').value   = book.author || '';
-  $('fieldCategory').value = book.category;
-  $('fieldStatus').value   = book.status;
+  $('fieldCategory').value = book.category || 'Any';
+  $('fieldStatus').value   = book.status || 'New';
   $('fieldNotes').value    = book.notes || '';
 
   $('fileUploadGroup').classList.add('hidden');
@@ -490,24 +493,15 @@ function validateForm() {
     valid = false;
   }
 
-  const fields = [
-    { input: 'fieldTitle',    error: 'errTitle',    label: 'Title' },
-    { input: 'fieldCategory', error: 'errCategory', label: 'Subject' },
-    { input: 'fieldStatus',   error: 'errStatus',   label: 'Reading status' },
-  ];
-
-  fields.forEach(({ input, error, label }) => {
-    const el  = $(input);
-    const val = el.value.trim();
-    if (!val) {
-      $(error).textContent = label + ' is required.';
-      el.classList.add('is-error');
-      valid = false;
-    } else {
-      $(error).textContent = '';
-      el.classList.remove('is-error');
-    }
-  });
+  const titleEl = $('fieldTitle');
+  if (!titleEl.value.trim()) {
+    $('errTitle').textContent = 'Title is required.';
+    titleEl.classList.add('is-error');
+    valid = false;
+  } else {
+    $('errTitle').textContent = '';
+    titleEl.classList.remove('is-error');
+  }
 
   return valid;
 }
@@ -518,8 +512,8 @@ async function handleFormSubmit(e) {
 
   const title    = $('fieldTitle').value.trim();
   const author   = $('fieldAuthor').value.trim();
-  const category = $('fieldCategory').value;
-  const status   = $('fieldStatus').value;
+  const category = $('fieldCategory').value.trim() || 'Any';
+  const status   = $('fieldStatus').value.trim() || 'New';
   const notes    = $('fieldNotes').value.trim();
 
   try {
