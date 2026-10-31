@@ -1,6 +1,6 @@
 ; Inno Setup 6 Script for My Little Library Desktop Edition
 #define MyAppName "My Little Library"
-#define MyAppVersion "2.0.0"
+#define MyAppVersion "2.2.0"
 #define MyAppPublisher "My Little Library"
 #define MyAppURL "https://github.com/supremeinori/my-little-library-2"
 #define MyAppExeName "MyLittleLibrary.exe"

@@ -59,6 +59,180 @@ static HRESULT STDMETHODCALLTYPE Controller_Invoke(
     ICoreWebView2Controller *createdController
 );
 
+/* ─────────────────────────────────────────────────────────────
+   COM Callback: WebMessageReceived Handler & Auto-Updater
+   ───────────────────────────────────────────────────────────── */
+
+static void LaunchUpdaterAndRestart(HWND hWnd, const wchar_t *downloadUrl) {
+    (void)hWnd;
+    wchar_t tempDir[MAX_PATH];
+    if (GetTempPathW(MAX_PATH, tempDir) == 0) {
+        wcscpy(tempDir, L"C:\\Windows\\Temp\\");
+    }
+
+    wchar_t scriptPath[MAX_PATH];
+    swprintf(scriptPath, MAX_PATH, L"%lsmll_updater.ps1", tempDir);
+
+    wchar_t currentExe[MAX_PATH];
+    GetModuleFileNameW(NULL, currentExe, MAX_PATH);
+    DWORD currentPid = GetCurrentProcessId();
+
+    FILE *f = _wfopen(scriptPath, L"w, ccs=UTF-8");
+    if (!f) return;
+
+    fwprintf(f,
+        L"param([string]$Url, [string]$TargetExe, [int]$AppPid)\r\n"
+        L"$installer = Join-Path $env:TEMP 'MyLittleLibrary-Update.exe'\r\n"
+        L"if (Test-Path $installer) { Remove-Item $installer -Force -ErrorAction SilentlyContinue }\r\n"
+        L"$done = $false\r\n"
+        L"if (Get-Command curl.exe -ErrorAction SilentlyContinue) {\r\n"
+        L"    & curl.exe -L $Url -o $installer --silent --fail\r\n"
+        L"    if ((Test-Path $installer) -and (Get-Item $installer).Length -gt 500000) { $done = $true }\r\n"
+        L"}\r\n"
+        L"if (-not $done) {\r\n"
+        L"    try {\r\n"
+        L"        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13\r\n"
+        L"        (New-Object System.Net.WebClient).DownloadFile($Url, $installer)\r\n"
+        L"        if ((Test-Path $installer) -and (Get-Item $installer).Length -gt 500000) { $done = $true }\r\n"
+        L"    } catch {}\r\n"
+        L"}\r\n"
+        L"if (-not $done) {\r\n"
+        L"    Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue\r\n"
+        L"    [System.Windows.Forms.MessageBox]::Show('Gagal mengunduh file pembaruan. Silakan periksa koneksi internet Anda.', 'My Little Library Update', 0, 16)\r\n"
+        L"    exit 1\r\n"
+        L"}\r\n"
+        L"if ($AppPid -gt 0) {\r\n"
+        L"    Stop-Process -Id $AppPid -Force -ErrorAction SilentlyContinue\r\n"
+        L"    Start-Sleep -Milliseconds 600\r\n"
+        L"}\r\n"
+        L"Start-Process -FilePath $installer -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait\r\n"
+        L"Remove-Item $installer -Force -ErrorAction SilentlyContinue\r\n"
+        L"$installedApp = \"$env:LOCALAPPDATA\\Programs\\My Little Library\\MyLittleLibrary.exe\"\r\n"
+        L"if (Test-Path $installedApp) {\r\n"
+        L"    Start-Process -FilePath $installedApp\r\n"
+        L"} elseif (Test-Path $TargetExe) {\r\n"
+        L"    Start-Process -FilePath $TargetExe\r\n"
+        L"}\r\n"
+    );
+    fclose(f);
+
+    wchar_t cmdLine[MAX_PATH * 4];
+    swprintf(cmdLine, MAX_PATH * 4,
+        L"powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File \"%ls\" -Url \"%ls\" -TargetExe \"%ls\" -AppPid %lu",
+        scriptPath, downloadUrl, currentExe, currentPid
+    );
+
+    STARTUPINFOW si;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&pi, sizeof(pi));
+
+    if (CreateProcessW(NULL, cmdLine, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+}
+
+typedef struct WebMessageReceivedHandler {
+    ICoreWebView2WebMessageReceivedEventHandler lpVtblContainer;
+    ICoreWebView2WebMessageReceivedEventHandlerVtbl vtbl;
+    LONG refCount;
+    HWND hWnd;
+} WebMessageReceivedHandler;
+
+static HRESULT STDMETHODCALLTYPE WebMsg_QueryInterface(
+    ICoreWebView2WebMessageReceivedEventHandler *This,
+    REFIID riid,
+    void **ppvObject
+) {
+    if (!ppvObject) return E_POINTER;
+
+    if (IsEqualIID(riid, &IID_IUnknown) ||
+        IsEqualIID(riid, &IID_ICoreWebView2WebMessageReceivedEventHandler)) {
+        *ppvObject = This;
+        This->lpVtbl->AddRef(This);
+        return S_OK;
+    }
+
+    *ppvObject = NULL;
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE WebMsg_AddRef(ICoreWebView2WebMessageReceivedEventHandler *This) {
+    WebMessageReceivedHandler *self = (WebMessageReceivedHandler*)This;
+    return InterlockedIncrement(&self->refCount);
+}
+
+static ULONG STDMETHODCALLTYPE WebMsg_Release(ICoreWebView2WebMessageReceivedEventHandler *This) {
+    WebMessageReceivedHandler *self = (WebMessageReceivedHandler*)This;
+    ULONG count = InterlockedDecrement(&self->refCount);
+    if (count == 0) {
+        free(self);
+    }
+    return count;
+}
+
+static HRESULT STDMETHODCALLTYPE WebMsg_Invoke(
+    ICoreWebView2WebMessageReceivedEventHandler *This,
+    ICoreWebView2 *sender,
+    ICoreWebView2WebMessageReceivedEventArgs *args
+) {
+    (void)sender;
+    WebMessageReceivedHandler *self = (WebMessageReceivedHandler*)This;
+    if (!args) return S_OK;
+
+    LPWSTR messageRaw = NULL;
+    HRESULT hr = args->lpVtbl->TryGetWebMessageAsString(args, &messageRaw);
+    if (FAILED(hr) || !messageRaw) {
+        hr = args->lpVtbl->get_WebMessageAsJson(args, &messageRaw);
+    }
+
+    if (SUCCEEDED(hr) && messageRaw) {
+        if (wcsstr(messageRaw, L"applyUpdate") != NULL) {
+            wchar_t url[1024] = { 0 };
+            wchar_t *urlKey = wcsstr(messageRaw, L"\"downloadUrl\":\"");
+            if (urlKey) {
+                urlKey += wcslen(L"\"downloadUrl\":\"");
+                wchar_t *urlEnd = wcschr(urlKey, L'\"');
+                if (urlEnd) {
+                    size_t len = urlEnd - urlKey;
+                    if (len < 1023) {
+                        wcsncpy(url, urlKey, len);
+                        url[len] = L'\0';
+                    }
+                }
+            }
+
+            if (wcslen(url) > 0) {
+                LaunchUpdaterAndRestart(self->hWnd, url);
+            }
+        }
+        CoTaskMemFree(messageRaw);
+    }
+
+    return S_OK;
+}
+
+static WebMessageReceivedHandler* CreateWebMessageReceivedHandler(HWND hWnd) {
+    WebMessageReceivedHandler *handler = (WebMessageReceivedHandler*)malloc(sizeof(WebMessageReceivedHandler));
+    if (!handler) return NULL;
+
+    handler->vtbl.QueryInterface = WebMsg_QueryInterface;
+    handler->vtbl.AddRef = WebMsg_AddRef;
+    handler->vtbl.Release = WebMsg_Release;
+    handler->vtbl.Invoke = WebMsg_Invoke;
+
+    handler->lpVtblContainer.lpVtbl = &handler->vtbl;
+    handler->refCount = 1;
+    handler->hWnd = hWnd;
+
+    return handler;
+}
+
 static ControllerCompletedHandler* CreateControllerCompletedHandler(HWND hWnd) {
     ControllerCompletedHandler *handler = (ControllerCompletedHandler*)malloc(sizeof(ControllerCompletedHandler));
     if (!handler) return NULL;
@@ -174,6 +348,20 @@ static HRESULT STDMETHODCALLTYPE Controller_Invoke(
             settings->lpVtbl->put_IsStatusBarEnabled(settings, FALSE);
             settings->lpVtbl->put_AreDefaultContextMenusEnabled(settings, TRUE);
             settings->lpVtbl->Release(settings);
+        }
+
+        // Register WebMessageReceived handler for in-app updater and interop
+        WebMessageReceivedHandler *msgHandler = CreateWebMessageReceivedHandler(self->hWnd);
+        if (msgHandler) {
+            EventRegistrationToken token;
+            g_webview->lpVtbl->add_WebMessageReceived(
+                g_webview,
+                (ICoreWebView2WebMessageReceivedEventHandler*)msgHandler,
+                &token
+            );
+            msgHandler->lpVtblContainer.lpVtbl->Release(
+                (ICoreWebView2WebMessageReceivedEventHandler*)msgHandler
+            );
         }
 
         // Map local web folder to virtual domain "app.assets"

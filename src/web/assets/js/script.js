@@ -48,7 +48,7 @@ let isZenMode           = false;
 let zenIdleTimer        = null;
 
 // Application Version & Update State
-const CURRENT_APP_VERSION = 'v2.1.1';
+const CURRENT_APP_VERSION = 'v2.2.0';
 const GITHUB_REPO = 'supremeinori/my-little-library-2';
 let isCheckingUpdate = false;
 
@@ -648,7 +648,7 @@ function handleReleaseData(release) {
       }
 
       $('btnDownloadUpdate').onclick = () => {
-        window.open(downloadUrl, '_blank');
+        triggerSeamlessUpdate(downloadUrl, latestTag);
       };
       $('btnViewOnGithub').href = release.html_url || `https://github.com/${GITHUB_REPO}/releases`;
     }
@@ -663,6 +663,48 @@ function handleReleaseData(release) {
       `;
     }
     if (releaseBox) releaseBox.classList.add('hidden');
+  }
+}
+
+function triggerSeamlessUpdate(downloadUrl, targetTag) {
+  const btn = $('btnDownloadUpdate');
+  const progressBox = $('updateProgressContainer');
+  const progressLabel = $('updateProgressLabel');
+  const progressPct = $('updateProgressPct');
+  const progressFill = $('updateProgressBarFill');
+  const progressSub = $('updateProgressSubtext');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="is-spinning"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      <span>Mengunduh Pembaruan...</span>
+    `;
+  }
+
+  if (progressBox) progressBox.classList.remove('hidden');
+  if (progressLabel) progressLabel.textContent = `Mengunduh ${targetTag || 'versi terbaru'}...`;
+  if (progressPct) progressPct.textContent = 'Memproses...';
+  if (progressFill) progressFill.classList.add('is-indeterminate');
+  if (progressSub) {
+    progressSub.textContent = 'Mengunduh installer di latar belakang. Aplikasi akan ditutup sebentar dan restart otomatis dengan versi terbaru.';
+  }
+
+  // Interop with Win32 WebView2 Native Host
+  if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+    try {
+      window.chrome.webview.postMessage(JSON.stringify({
+        action: 'applyUpdate',
+        downloadUrl: downloadUrl,
+        version: targetTag
+      }));
+    } catch (err) {
+      console.warn('Failed to communicate with WebView2 host:', err);
+      window.open(downloadUrl, '_blank');
+    }
+  } else {
+    // External browser fallback
+    window.open(downloadUrl, '_blank');
   }
 }
 

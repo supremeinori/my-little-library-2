@@ -301,12 +301,26 @@
               <div class="update-release-date" id="updateReleaseDate"></div>
             </div>
             <div class="update-release-notes" id="updateReleaseNotes"></div>
-            <div class="update-actions">
+            <div class="update-actions" id="updateActionBtns">
               <button type="button" class="btn btn-primary" id="btnDownloadUpdate">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>Download & Update (.exe)</span>
+                <span>Update Sekarang & Restart</span>
               </button>
               <a href="#" target="_blank" class="btn btn-secondary" id="btnViewOnGithub">View on GitHub</a>
+            </div>
+
+            <!-- In-App Seamless Auto-Updater Status & Progress -->
+            <div class="update-progress-container hidden" id="updateProgressContainer">
+              <div class="update-progress-header">
+                <span class="update-progress-label" id="updateProgressLabel">Mengunduh pembaruan...</span>
+                <span class="update-progress-pct" id="updateProgressPct">Memproses</span>
+              </div>
+              <div class="update-progress-bar-bg">
+                <div class="update-progress-bar-fill is-indeterminate" id="updateProgressBarFill"></div>
+              </div>
+              <p class="update-progress-subtext" id="updateProgressSubtext">
+                File sedang diunduh di latar belakang. Aplikasi akan ditutup sebentar dan dibuka kembali secara otomatis dengan versi terbaru.
+              </p>
             </div>
           </div>
         </div>

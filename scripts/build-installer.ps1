@@ -45,8 +45,15 @@ $issFile = Join-Path $PSScriptRoot "..\installer\MyLittleLibrary.iss"
 Write-Host "Compiling installer script: $issFile..." -ForegroundColor Yellow
 & $isccPath $issFile
 
-$installerExe = Join-Path $distDir "MyLittleLibrary-Setup-v2.0.0.exe"
+$installerExe = Join-Path $distDir "MyLittleLibrary-Setup-v2.2.0.exe"
+if (-not (Test-Path $installerExe)) {
+    $installerExe = (Get-ChildItem -Path $distDir -Filter "MyLittleLibrary-Setup-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+}
 if (Test-Path $installerExe) {
+    # Keep v2.0.0 filename copy for backward-compatible GitHub download links
+    $legacyExe = Join-Path $distDir "MyLittleLibrary-Setup-v2.0.0.exe"
+    Copy-Item $installerExe $legacyExe -Force
+
     $item = Get-Item $installerExe
     $sizeMb = [Math]::Round($item.Length / 1MB, 2)
     Write-Host "==========================================================" -ForegroundColor Green
