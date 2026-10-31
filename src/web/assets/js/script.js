@@ -616,7 +616,7 @@ function applyZoom(newZoom) {
   }
 }
 
-async function renderPdfViewer(blob, book) {
+async function renderPdfViewer(blob, book, targetPage = 0) {
   const body = $('readerBody');
   const displayTitle = formatDisplayTitle(book.title);
 
@@ -691,19 +691,24 @@ async function renderPdfViewer(blob, book) {
     const viewport1 = firstPage.getViewport({ scale: 1.0 });
     const aspect = viewport1.height / viewport1.width;
 
-    const stageWidth = body.clientWidth || window.innerWidth;
-    const stageHeight = Math.max(450, (body.clientHeight || window.innerHeight) - 80);
+    // Measure live stage dimensions (readerPanel is guaranteed visible)
+    const stageWidth = Math.max(340, body.clientWidth || window.innerWidth);
+    const stageHeight = Math.max(400, (body.clientHeight || window.innerHeight) - 80);
 
-    let maxSingleWidth = Math.floor((stageWidth - 60) / 2);
-    let maxSingleHeight = stageHeight - 40;
+    // Keep margin so book never touches edges in non-full window mode
+    let maxSingleWidth = Math.floor((stageWidth - 48) / 2);
+    let maxSingleHeight = stageHeight - 48;
 
-    let singleWidth = Math.min(520, Math.floor(maxSingleHeight / aspect), maxSingleWidth);
+    let singleWidth = Math.min(500, Math.floor(maxSingleHeight / aspect), maxSingleWidth);
     let singleHeight = Math.floor(singleWidth * aspect);
 
-    if (singleWidth < 260) singleWidth = 260;
-    if (singleHeight < 380) singleHeight = 380;
+    if (singleWidth < 180) singleWidth = 180;
+    if (singleHeight < 250) singleHeight = 250;
 
     const container = document.getElementById('flipbookContainer');
+    container.style.width = (singleWidth * 2) + 'px';
+    container.style.height = singleHeight + 'px';
+    container.style.margin = 'auto';
 
     // 1. Front Cover (Hard)
     const coverDiv = document.createElement('div');
@@ -771,18 +776,19 @@ async function renderPdfViewer(blob, book) {
         width: singleWidth,
         height: singleHeight,
         size: 'fixed',
-        minWidth: 260,
-        maxWidth: 800,
-        minHeight: 380,
-        maxHeight: 1100,
+        minWidth: singleWidth,
+        maxWidth: singleWidth * 2,
+        minHeight: singleHeight,
+        maxHeight: singleHeight * 2,
         drawShadow: true,
         maxShadowOpacity: 0.55,
         showCover: true,
-        usePortrait: true,
+        usePortrait: false, // Ensure physical two-page book spread is ALWAYS preserved and centered on desktop
+        startPage: targetPage,
         startZIndex: 1,
-        autoSize: true,
+        autoSize: false,
         showPageCorners: true,
-        flippingTime: 700
+        flippingTime: 650
       });
 
       currentFlipInstance.loadFromHTML(pageElements);
@@ -825,9 +831,10 @@ async function renderPdfViewer(blob, book) {
       }
 
       // Initial render for opening spread
-      await renderPdfPageCanvas(1);
-      renderPdfPageCanvas(2);
-      renderPdfPageCanvas(3);
+      const startRender = Math.max(1, targetPage);
+      await renderPdfPageCanvas(startRender);
+      renderPdfPageCanvas(startRender + 1);
+      renderPdfPageCanvas(startRender + 2);
 
       // Update toolbar counter text
       function updateToolbarCounter(pageIdx) {
@@ -841,6 +848,8 @@ async function renderPdfViewer(blob, book) {
           counter.textContent = `Page ${pageIdx} of ${totalPages}`;
         }
       }
+
+      updateToolbarCounter(targetPage);
 
       currentFlipInstance.on('flip', (e) => {
         const currentIdx = e.data;
@@ -971,6 +980,19 @@ function handleReaderKeydown(e) {
   }
 }
 
+let resizeDebounce = null;
+function handleWindowResize() {
+  const panel = $('readerPanel');
+  if (!panel || panel.classList.contains('hidden')) return;
+  if (currentReaderBook && currentReaderBook.fileType === 'pdf' && pdfReaderMode === 'flip' && currentFlipInstance) {
+    clearTimeout(resizeDebounce);
+    resizeDebounce = setTimeout(() => {
+      const curPage = currentFlipInstance ? currentFlipInstance.getCurrentPageIndex() : 0;
+      renderPdfViewer(currentReaderBlob, currentReaderBook, curPage);
+    }, 250);
+  }
+}
+
 async function openReader(bookId) {
   const book = books.find(b => b.id === bookId);
   if (!book) return;
@@ -989,6 +1011,12 @@ async function openReader(bookId) {
 
   currentReaderBook = book;
   currentReaderBlob = fileRecord.blob;
+
+  // Reveal reader panel early so viewport geometry and client dimensions are exact
+  $('readerPanel').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  window.addEventListener('keydown', handleReaderKeydown);
+  window.addEventListener('resize', handleWindowResize);
 
   const displayTitle = formatDisplayTitle(book.title);
   $('readerTitle').textContent  = displayTitle;
@@ -1058,10 +1086,6 @@ async function openReader(bookId) {
       body.innerHTML = '<p style="padding:48px;text-align:center;color:#666;">Failed to load EPUB publication.</p>';
     }
   }
-
-  $('readerPanel').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  window.addEventListener('keydown', handleReaderKeydown);
 }
 
 function closeReader() {
@@ -1069,6 +1093,7 @@ function closeReader() {
   $('readerModeToggle').classList.add('hidden');
   document.body.style.overflow = '';
   window.removeEventListener('keydown', handleReaderKeydown);
+  window.removeEventListener('resize', handleWindowResize);
 
   const body = $('readerBody');
 
