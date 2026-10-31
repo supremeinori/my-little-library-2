@@ -29,6 +29,14 @@ let currentEpub         = null; // epub.js Book instance
 let currentRendition    = null;
 let activeBlobUrl       = null;
 
+// PDF Flipbook & Reader State
+let currentPdfDoc       = null;
+let currentFlipInstance = null;
+let renderedPdfPages    = new Set();
+let currentReaderBook   = null;
+let currentReaderBlob   = null;
+let pdfReaderMode       = 'flip'; // 'flip' or 'scroll'
+
 /* ─────────────────────────────────────────────
    Initialization & Persistence
    ───────────────────────────────────────────── */
@@ -586,6 +594,263 @@ async function handleDeleteConfirm() {
 /* ─────────────────────────────────────────────
    Integrated Reader (PDF & ePub)
    ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   PDF Flipbook & Reader Engine
+   ───────────────────────────────────────────── */
+async function renderPdfViewer(blob, book) {
+  const body = $('readerBody');
+  const displayTitle = formatDisplayTitle(book.title);
+
+  // Clean up previous flipbook instance if any
+  if (currentFlipInstance) {
+    try { currentFlipInstance.destroy(); } catch (_) {}
+    currentFlipInstance = null;
+  }
+  renderedPdfPages.clear();
+
+  if (pdfReaderMode === 'scroll') {
+    // Standard continuous view
+    body.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.src = activeBlobUrl;
+    iframe.title = displayTitle;
+    body.appendChild(iframe);
+    return;
+  }
+
+  // Flipbook Mode (3D Physical Book Spread)
+  body.innerHTML = `
+    <div class="flipbook-stage">
+      <div class="flipbook-page-loading" id="flipbookLoadingMsg">
+        Preparing pages & binding book…
+      </div>
+      <div id="flipbookWrapper" style="display:none; width: 100%; height: 100%; justify-content: center; align-items: center;">
+        <div id="flipbookContainer" class="flipbook-container"></div>
+      </div>
+      <div class="flipbook-toolbar hidden" id="flipbookToolbar">
+        <button type="button" class="flipbook-btn" id="flipPrevBtn" title="Previous page">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Prev
+        </button>
+        <span class="flipbook-counter" id="flipbookCounter">Cover</span>
+        <button type="button" class="flipbook-btn" id="flipNextBtn" title="Next page">
+          Next
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <span class="flipbook-hint">Use &larr; / &rarr; keys or drag page corners</span>
+      </div>
+    </div>
+  `;
+
+  try {
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+    } else {
+      throw new Error('PDF.js library is not available.');
+    }
+
+    const arrayBuffer = await blob.arrayBuffer();
+    currentPdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = currentPdfDoc.numPages;
+
+    // Determine dimensions from first page aspect ratio
+    const firstPage = await currentPdfDoc.getPage(1);
+    const viewport1 = firstPage.getViewport({ scale: 1.0 });
+    const aspect = viewport1.height / viewport1.width;
+
+    const stageWidth = body.clientWidth || window.innerWidth;
+    const stageHeight = Math.max(450, (body.clientHeight || window.innerHeight) - 80);
+
+    let maxSingleWidth = Math.floor((stageWidth - 60) / 2);
+    let maxSingleHeight = stageHeight - 40;
+
+    let singleWidth = Math.min(520, Math.floor(maxSingleHeight / aspect), maxSingleWidth);
+    let singleHeight = Math.floor(singleWidth * aspect);
+
+    if (singleWidth < 260) singleWidth = 260;
+    if (singleHeight < 380) singleHeight = 380;
+
+    const container = document.getElementById('flipbookContainer');
+
+    // 1. Front Cover (Hard)
+    const coverDiv = document.createElement('div');
+    coverDiv.className = 'flipbook-page flipbook-cover-page';
+    coverDiv.dataset.density = 'hard';
+
+    if (book.coverImage) {
+      coverDiv.innerHTML = `<img class="flipbook-cover-artwork" src="${book.coverImage}" alt="Cover" />`;
+    } else {
+      coverDiv.innerHTML = `
+        <div class="flipbook-cover-inlay">
+          <div class="book-press-mark">MY LITTLE LIBRARY</div>
+          <div>
+            <div class="flipbook-cover-title">${esc(displayTitle)}</div>
+            <div class="flipbook-cover-author">${esc(book.author || 'Unknown author')}</div>
+          </div>
+          <div class="book-cover-top">
+            <span>EDITION</span>
+            <span>VOL. 1</span>
+          </div>
+        </div>
+      `;
+    }
+    container.appendChild(coverDiv);
+
+    // 2. Content Pages
+    for (let i = 1; i <= totalPages; i++) {
+      const isOdd = (i % 2 === 1);
+      const sideClass = isOdd ? 'flipbook-page--right' : 'flipbook-page--left';
+      const pageDiv = document.createElement('div');
+      pageDiv.className = `flipbook-page ${sideClass}`;
+      pageDiv.dataset.page = i;
+      pageDiv.dataset.density = 'soft';
+      pageDiv.innerHTML = `
+        <div class="flipbook-page-loading" id="pdfPageLoading-${i}">Rendering page ${i}…</div>
+        <canvas class="flipbook-canvas hidden" id="pdfCanvas-${i}"></canvas>
+        <span class="flipbook-page-footer">${i}</span>
+      `;
+      container.appendChild(pageDiv);
+    }
+
+    // 3. Back Cover & Closing Endpaper
+    if (totalPages % 2 !== 0) {
+      const endpaper = document.createElement('div');
+      endpaper.className = 'flipbook-page flipbook-page--left';
+      endpaper.dataset.density = 'soft';
+      endpaper.innerHTML = `<div style="flex:1;"></div><span class="flipbook-page-footer">—</span>`;
+      container.appendChild(endpaper);
+    }
+
+    const backCover = document.createElement('div');
+    backCover.className = 'flipbook-page flipbook-cover-page';
+    backCover.dataset.density = 'hard';
+    backCover.innerHTML = `
+      <div class="flipbook-cover-inlay" style="justify-content:center;align-items:center;">
+        <div class="book-press-mark">EX LIBRIS &bull; MY LITTLE LIBRARY</div>
+      </div>
+    `;
+    container.appendChild(backCover);
+
+    // Initialize St.PageFlip
+    if (typeof St !== 'undefined' && St.PageFlip) {
+      const pageElements = container.querySelectorAll('.flipbook-page');
+      currentFlipInstance = new St.PageFlip(container, {
+        width: singleWidth,
+        height: singleHeight,
+        size: 'fixed',
+        minWidth: 260,
+        maxWidth: 800,
+        minHeight: 380,
+        maxHeight: 1100,
+        drawShadow: true,
+        maxShadowOpacity: 0.55,
+        showCover: true,
+        usePortrait: true,
+        startZIndex: 1,
+        autoSize: true,
+        showPageCorners: true,
+        flippingTime: 700
+      });
+
+      currentFlipInstance.loadFromHTML(pageElements);
+
+      // Function to render page canvas on demand
+      async function renderPdfPageCanvas(pageNum) {
+        if (renderedPdfPages.has(pageNum) || pageNum < 1 || pageNum > totalPages) return;
+        renderedPdfPages.add(pageNum);
+        try {
+          const page = await currentPdfDoc.getPage(pageNum);
+          const canvas = document.getElementById(`pdfCanvas-${pageNum}`);
+          const loader = document.getElementById(`pdfPageLoading-${pageNum}`);
+          if (!canvas) return;
+
+          const baseViewport = page.getViewport({ scale: 1.0 });
+          const scale = Math.max(1.5, Math.min(2.5, (singleWidth / baseViewport.width) * 1.5));
+          const viewport = page.getViewport({ scale });
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          if (loader) loader.style.display = 'none';
+          canvas.classList.remove('hidden');
+        } catch (err) {
+          console.warn(`Error rendering page ${pageNum}:`, err);
+        }
+      }
+
+      // Initial render for opening spread
+      await renderPdfPageCanvas(1);
+      renderPdfPageCanvas(2);
+      renderPdfPageCanvas(3);
+
+      // Update toolbar counter text
+      function updateToolbarCounter(pageIdx) {
+        const counter = document.getElementById('flipbookCounter');
+        if (!counter) return;
+        if (pageIdx === 0) {
+          counter.textContent = 'Cover';
+        } else if (pageIdx > totalPages) {
+          counter.textContent = 'Back Cover';
+        } else {
+          counter.textContent = `Page ${pageIdx} of ${totalPages}`;
+        }
+      }
+
+      currentFlipInstance.on('flip', (e) => {
+        const currentIdx = e.data;
+        updateToolbarCounter(currentIdx);
+        // Pre-render neighbor pages
+        for (let offset = -2; offset <= 3; offset++) {
+          const target = currentIdx + offset;
+          if (target >= 1 && target <= totalPages) {
+            renderPdfPageCanvas(target);
+          }
+        }
+      });
+
+      document.getElementById('flipPrevBtn').onclick = () => {
+        if (currentFlipInstance) currentFlipInstance.flipPrev();
+      };
+      document.getElementById('flipNextBtn').onclick = () => {
+        if (currentFlipInstance) currentFlipInstance.flipNext();
+      };
+
+      document.getElementById('flipbookLoadingMsg').style.display = 'none';
+      document.getElementById('flipbookWrapper').style.display = 'flex';
+      document.getElementById('flipbookToolbar').classList.remove('hidden');
+
+    } else {
+      throw new Error('PageFlip library is not available.');
+    }
+
+  } catch (err) {
+    console.error('Error initializing flipbook:', err);
+    // Graceful fallback to standard scroll view
+    body.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.src = activeBlobUrl;
+    iframe.title = displayTitle;
+    body.appendChild(iframe);
+  }
+}
+
+function handleReaderKeydown(e) {
+  const panel = $('readerPanel');
+  if (!panel || panel.classList.contains('hidden')) return;
+
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+    if (currentFlipInstance) currentFlipInstance.flipNext();
+    else if (currentRendition) currentRendition.next();
+  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+    if (currentFlipInstance) currentFlipInstance.flipPrev();
+    else if (currentRendition) currentRendition.prev();
+  } else if (e.key === 'Escape') {
+    closeReader();
+  }
+}
+
 async function openReader(bookId) {
   const book = books.find(b => b.id === bookId);
   if (!book) return;
@@ -602,6 +867,9 @@ async function openReader(bookId) {
     return;
   }
 
+  currentReaderBook = book;
+  currentReaderBlob = fileRecord.blob;
+
   const displayTitle = formatDisplayTitle(book.title);
   $('readerTitle').textContent  = displayTitle;
   $('readerAuthor').textContent = book.author || 'Unknown author';
@@ -615,16 +883,18 @@ async function openReader(bookId) {
   }
 
   activeBlobUrl = URL.createObjectURL(fileRecord.blob);
+  $('readerOpenExternal').onclick = () => window.open(activeBlobUrl, '_blank');
 
   if (book.fileType === 'pdf') {
-    const iframe = document.createElement('iframe');
-    iframe.src = activeBlobUrl;
-    iframe.title = displayTitle;
-    body.appendChild(iframe);
+    $('readerModeToggle').classList.remove('hidden');
+    $('btnModeFlip').classList.toggle('is-active', pdfReaderMode === 'flip');
+    $('btnModeScroll').classList.toggle('is-active', pdfReaderMode === 'scroll');
 
-    $('readerOpenExternal').onclick = () => window.open(activeBlobUrl, '_blank');
+    await renderPdfViewer(currentReaderBlob, currentReaderBook);
 
   } else if (book.fileType === 'epub') {
+    $('readerModeToggle').classList.add('hidden');
+
     const viewerDiv = document.createElement('div');
     viewerDiv.id = 'epubViewer';
     body.appendChild(viewerDiv);
@@ -667,17 +937,18 @@ async function openReader(bookId) {
       console.error('Error rendering EPUB:', e);
       body.innerHTML = '<p style="padding:48px;text-align:center;color:#666;">Failed to load EPUB publication.</p>';
     }
-
-    $('readerOpenExternal').onclick = () => window.open(activeBlobUrl, '_blank');
   }
 
   $('readerPanel').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  window.addEventListener('keydown', handleReaderKeydown);
 }
 
 function closeReader() {
   $('readerPanel').classList.add('hidden');
+  $('readerModeToggle').classList.add('hidden');
   document.body.style.overflow = '';
+  window.removeEventListener('keydown', handleReaderKeydown);
 
   const body = $('readerBody');
 
@@ -685,6 +956,15 @@ function closeReader() {
     URL.revokeObjectURL(activeBlobUrl);
     activeBlobUrl = null;
   }
+
+  if (currentFlipInstance) {
+    try { currentFlipInstance.destroy(); } catch (_) {}
+    currentFlipInstance = null;
+  }
+  renderedPdfPages.clear();
+  currentPdfDoc = null;
+  currentReaderBook = null;
+  currentReaderBlob = null;
 
   if (currentRendition) {
     try { currentRendition.destroy(); } catch (_) {}
@@ -824,9 +1104,27 @@ document.addEventListener('DOMContentLoaded', () => {
   $('deleteCancelBtn').addEventListener('click', () => closeModal('deleteModal'));
   $('deleteConfirmBtn').addEventListener('click', handleDeleteConfirm);
 
-  // Reader panel
+  // Reader panel controls
   $('readerCloseBtn').addEventListener('click', closeReader);
   $('readerOverlay').addEventListener('click', closeReader);
+
+  $('btnModeFlip').addEventListener('click', () => {
+    if (pdfReaderMode !== 'flip' && currentReaderBlob && currentReaderBook) {
+      pdfReaderMode = 'flip';
+      $('btnModeFlip').classList.add('is-active');
+      $('btnModeScroll').classList.remove('is-active');
+      renderPdfViewer(currentReaderBlob, currentReaderBook);
+    }
+  });
+
+  $('btnModeScroll').addEventListener('click', () => {
+    if (pdfReaderMode !== 'scroll' && currentReaderBlob && currentReaderBook) {
+      pdfReaderMode = 'scroll';
+      $('btnModeScroll').classList.add('is-active');
+      $('btnModeFlip').classList.remove('is-active');
+      renderPdfViewer(currentReaderBlob, currentReaderBook);
+    }
+  });
 
   // Keyboard shortcut: ESC to close modals or reader
   document.addEventListener('keydown', (e) => {

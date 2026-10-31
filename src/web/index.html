@@ -283,6 +283,12 @@
         <span class="reader-author" id="readerAuthor"></span>
       </div>
       <div class="reader-controls">
+        <!-- PDF Reader Mode Toggle (Flipbook vs Standard) -->
+        <div class="reader-mode-toggle hidden" id="readerModeToggle">
+          <button type="button" class="reader-mode-btn is-active" id="btnModeFlip" title="Realistic 3D physical book spread">Book Spread</button>
+          <button type="button" class="reader-mode-btn" id="btnModeScroll" title="Standard continuous scroll">Standard View</button>
+        </div>
+
         <button class="btn btn-secondary btn-sm" id="readerOpenExternal" title="Open in separate window">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Separate Window
@@ -299,6 +305,8 @@
   <!-- Offline vendor scripts -->
   <script src="vendor/jszip.min.js"></script>
   <script src="vendor/epub.min.js"></script>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/page-flip.browser.js"></script>
   <!-- Storage and UI logic -->
   <script src="assets/js/db.js"></script>
   <script src="assets/js/script.js"></script>

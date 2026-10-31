@@ -16,4 +16,18 @@ This directory contains offline bundled JavaScript libraries required by My Litt
 - **License:** MIT License / Dual licensed GPLv3
 - **Purpose:** Client-side decompression for EPUB archives (required by ePub.js for reading EPUB container structures).
 
+## 3. PDF.js
+- **Version:** 3.11.174
+- **Files:** `pdf.min.js`, `pdf.worker.min.js`
+- **Homepage:** https://mozilla.github.io/pdf.js/
+- **License:** Apache License 2.0
+- **Purpose:** Offline PDF rendering engine to render pages onto HTML5 canvas with high-DPI scaling.
+
+## 4. PageFlip (StPageFlip)
+- **Version:** 2.0.7
+- **File:** `page-flip.browser.js`
+- **Homepage:** https://nodlik.github.io/StPageFlip/
+- **License:** MIT License
+- **Purpose:** Realistic 3D physical book turn-page animation with paper curl physics, two-page spreads, and spine shadow.
+
 Bundling these libraries locally satisfies NFR-01 and FR-04 by allowing full offline reading without runtime requests to external CDNs.
