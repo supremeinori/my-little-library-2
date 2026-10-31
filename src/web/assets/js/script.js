@@ -644,7 +644,7 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
       <div class="flipbook-page-loading" id="flipbookLoadingMsg">
         Preparing pages & binding book…
       </div>
-      <div id="flipbookWrapper" class="flipbook-wrapper" style="display:none;">
+      <div id="flipbookWrapper" class="flipbook-wrapper is-hidden">
         <div id="flipbookContainer" class="flipbook-container"></div>
       </div>
       <div class="flipbook-toolbar hidden" id="flipbookToolbar">
@@ -691,24 +691,28 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
     const viewport1 = firstPage.getViewport({ scale: 1.0 });
     const aspect = viewport1.height / viewport1.width;
 
-    // Measure live stage dimensions (readerPanel is guaranteed visible)
-    const stageWidth = Math.max(340, body.clientWidth || window.innerWidth);
-    const stageHeight = Math.max(400, (body.clientHeight || window.innerHeight) - 80);
+    // Live stage dimensions (readerPanel is guaranteed visible)
+    const availWidth  = Math.max(300, (body.clientWidth || window.innerWidth) - 64);
+    const availHeight = Math.max(300, (body.clientHeight || window.innerHeight) - 96);
 
-    // Keep margin so book never touches edges in non-full window mode
-    let maxSingleWidth = Math.floor((stageWidth - 48) / 2);
-    let maxSingleHeight = stageHeight - 48;
+    let maxPageWidth  = Math.floor(availWidth / 2);
+    let maxPageHeight = availHeight;
 
-    let singleWidth = Math.min(500, Math.floor(maxSingleHeight / aspect), maxSingleWidth);
+    let singleWidth  = Math.floor(Math.min(maxPageWidth, maxPageHeight / aspect));
+    singleWidth = Math.min(500, singleWidth);
     let singleHeight = Math.floor(singleWidth * aspect);
 
     if (singleWidth < 180) singleWidth = 180;
     if (singleHeight < 250) singleHeight = 250;
 
     const container = document.getElementById('flipbookContainer');
-    container.style.width = (singleWidth * 2) + 'px';
-    container.style.height = singleHeight + 'px';
-    container.style.margin = 'auto';
+    const totalWidth = singleWidth * 2;
+    container.style.width     = totalWidth + 'px';
+    container.style.height    = singleHeight + 'px';
+    container.style.minWidth  = totalWidth + 'px';
+    container.style.minHeight = singleHeight + 'px';
+    container.style.maxWidth  = totalWidth + 'px';
+    container.style.maxHeight = singleHeight + 'px';
 
     // 1. Front Cover (Hard)
     const coverDiv = document.createElement('div');
@@ -929,8 +933,11 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
       }
 
       document.getElementById('flipbookLoadingMsg').style.display = 'none';
-      document.getElementById('flipbookWrapper').style.display = 'flex';
+      document.getElementById('flipbookWrapper').classList.remove('is-hidden');
       document.getElementById('flipbookToolbar').classList.remove('hidden');
+      if (currentFlipInstance) {
+        currentFlipInstance.update();
+      }
 
     } else {
       throw new Error('PageFlip library is not available.');

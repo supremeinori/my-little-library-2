@@ -1465,6 +1465,13 @@ input, select, textarea {
   scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.35);
   padding: 16px;
   box-sizing: border-box;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.flipbook-wrapper.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .flipbook-wrapper.is-zoomed {
@@ -1495,7 +1502,7 @@ input, select, textarea {
 }
 
 .flipbook-container {
-  margin: auto;
+  margin: auto !important;
   position: relative;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
   transform-origin: center center;
