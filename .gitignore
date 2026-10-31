@@ -1,8 +1,6 @@
 # Build output
 build/
 bin/
-dist/
-*.exe
 *.dll
 *.obj
 *.o
@@ -14,9 +12,13 @@ dist/
 *.exp
 
 # Packages
-*.zip
 *.7z
 *.tar.gz
+dist/MyLittleLibrary-v2.0.0-win64/
+
+# Allow distribution release binaries
+!dist/MyLittleLibrary-Setup-v2.0.0.exe
+!dist/MyLittleLibrary-v2.0.0-win64.zip
 
 # WebView2 SDK & User Data
 /deps/

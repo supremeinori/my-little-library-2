@@ -18,17 +18,21 @@ graph TD
         Window["app_window.c<br/>(Main HWND)"]
         Tray["tray_icon.c<br/>(Shell_NotifyIconW)"]
         WVHost["webview_host.c<br/>(WebView2 COM Host)"]
+        Res["resources/app.rc<br/>(Multi-res app.ico)"]
     end
 
     subgraph "OS Runtime & Embedded Engine"
         WebViewRuntime["Microsoft Edge WebView2 Runtime<br/>(Evergreen Chromium)"]
     end
 
-    subgraph "Web Application Layer (HTML5 / Vanilla JS)"
+    subgraph "Web Application Layer (HTML5 / Pure JS / Open Sans)"
         Index["src/web/index.html"]
         Script["src/web/assets/js/script.js"]
         DB["src/web/assets/js/db.js"]
-        Vendor["src/web/vendor/epub.min.js"]
+        Flipbook["src/web/vendor/page-flip.browser.js"]
+        PDFJS["src/web/vendor/pdf.min.js"]
+        EPUB["src/web/vendor/epub.min.js"]
+        Fonts["src/web/assets/fonts/ (Open Sans WOFF2)"]
     end
 
     subgraph "Local Persistence"
@@ -39,11 +43,15 @@ graph TD
     Main --> Window
     Window --> Tray
     Window --> WVHost
+    Window --> Res
     WVHost --> WebViewRuntime
     WebViewRuntime --> Index
     Index --> Script
+    Index --> Fonts
     Script --> DB
-    Script --> Vendor
+    Script --> Flipbook
+    Script --> PDFJS
+    Script --> EPUB
     DB --> IDB
 ```
 
@@ -71,66 +79,40 @@ graph TD
   - **Open My Little Library** (default action in bold)
   - Separator
   - **Exit**
-- Context menu activation adheres to standard Win32 guidelines (`SetForegroundWindow` -> `TrackPopupMenuEx` -> `PostMessage(hWnd, WM_NULL, 0, 0)`), preventing hanging popup menus.
 
 ### 2.4 WebView2 COM Host (`webview_host.c` / `webview_host.h`)
 - **Dynamic Loading:** `WebView2Loader.dll` is dynamically loaded via `LoadLibraryW` and `GetProcAddress`. This decouples the compiler from MSVC-specific import libraries and allows descriptive error dialogs if the loader or runtime is absent.
 - **User Data Isolation:** The user data folder is explicitly isolated to `%LOCALAPPDATA%\MyLittleLibrary\WebView2Data`. This avoids interfering with system Edge browser profiles or other apps.
 - **Virtual Host Name Mapping:** Uses `ICoreWebView2_3::SetVirtualHostNameToFolderMapping` to map the local web directory to `https://app.assets/`. This provides:
   - Secure HTTPS origin semantics for IndexedDB.
-  - Zero CORS complications when loading local EPUB packages or worker scripts.
+  - Zero CORS complications when loading local EPUB packages, WOFF2 fonts, or worker scripts.
   - Fallback to standard file URI if older runtime versions are encountered.
 
 ---
 
-## 3. Web & Storage Subsystem (`src/web/`)
+## 3. Web, Reader & Art Subsystems (`src/web/`)
 
 ### 3.1 IndexedDB Storage Engine (`assets/js/db.js`)
-Previous versions relied on `localStorage`, which stores data as Base64 strings. Because `localStorage` is synchronously blocking and limited to 5MB–10MB per origin, larger PDF/EPUB files regularly triggered quota overflow exceptions.
-
-The desktop edition migrates all persistence to **IndexedDB** (`MyLittleLibraryDB`):
-- **Object Store `books`:** Stores metadata JSON (id, title, author, category, status, notes, file metadata, timestamp) with indexes on `category`, `status`, and `addedAt`.
+Persistence is handled entirely through **IndexedDB** (`MyLittleLibraryDB`):
+- **Object Store `books`:** Stores metadata JSON (id, title, author, category, status, notes, file metadata, timestamp, custom cover base64) with indexes on `category`, `status`, and `addedAt`.
 - **Object Store `files`:** Stores raw binary documents (`Blob`) indexed by `bookId`.
-- **Legacy Migration:** At startup, `dbMigrateLegacyLocalStorage()` inspects `localStorage`. If legacy books and Base64 payloads exist, it parses them, saves them as native blobs into IndexedDB, and purges `localStorage`.
+- **Legacy Migration:** At startup, `dbMigrateLegacyLocalStorage()` inspects `localStorage`. If legacy records exist, it parses them, saves them as native blobs into IndexedDB, and purges `localStorage`.
 
-### 3.2 Offline Digital Reader
-- **PDF Documents:** Rendered directly within an `<iframe>` leveraging the built-in PDF reader plugin of Edge/Chromium.
-- **EPUB Documents:** Rendered via a locally bundled `epub.min.js` and `jszip.min.js` located in `src/web/vendor/`. No runtime internet access is required.
-- **Memory Safety:** Whenever the reader panel closes, all active Object URLs (`URL.revokeObjectURL`) are revoked, and ePub rendition instances are destroyed to free memory immediately.
+### 3.2 3D Physical Flipbook & Reader Engine
+- **PDF Documents (3D Flipbook):** Powered by `pdf.js` and `page-flip.js`. Renders double-page spreads with realistic turn-page animation, mouse corner dragging, dynamic spine crease gradients, and full zoom/pan support.
+- **Standard View:** Provides continuous vertical scroll fallback for fast reading.
+- **EPUB Documents:** Rendered via locally bundled `epub.min.js` with chapter pagination.
+- **Dock Auto-Concealment:** When the reader opens, the bottom floating dock is automatically concealed via `body.reader-open` and CSS `:has(#readerPanel:not(.hidden))` so controls are 100% unobstructed.
+
+### 3.3 Manga Ink Signature Design System
+- **Open Sans Typography:** Pure offline Latin WOFF2 subsets bundled in `assets/fonts/`.
+- **Manga Screen-Tone Shadows:** Procedural 45° cross-hatching drop shadows with crisp pen borders.
+- **High-Contrast Dark Mode Inversion:** Automatic inversion from rich black ink on paper to bright white/silver ink on dark background.
+- **Procedural Hardcover Covers:** Books without cover artwork automatically render 3D cloth-bound hardcover objects with engraved borders and spine lighting.
 
 ---
 
-## 4. Resource & Build Lifecycle
+## 4. Packaging & Distribution Subsystem
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Shell as Windows Shell
-    participant App as MyLittleLibrary.exe
-    participant WV as WebView2
-    participant IDB as IndexedDB
-
-    User->>Shell: Launch MyLittleLibrary.exe
-    Shell->>App: WinMain()
-    App->>App: Check Mutex (Single Instance)
-    App->>App: Register Class & Create Window
-    App->>App: Add Tray Icon (NIM_ADD)
-    App->>WV: CreateCoreWebView2EnvironmentWithOptions()
-    WV-->>App: Environment Created Callback
-    App->>WV: CreateCoreWebView2Controller()
-    WV-->>App: Controller Created Callback
-    App->>WV: Navigate("https://app.assets/index.html")
-    WV->>IDB: Open MyLittleLibraryDB
-    IDB-->>WV: Return stored book collection
-    WV-->>User: Render Dashboard & Collection
-
-    User->>App: Click Close (X)
-    App->>App: Intercept WM_CLOSE -> ShowWindow(SW_HIDE)
-    App-->>User: Show Tray Balloon Tip
-    
-    User->>App: Right-Click Tray -> Click "Exit"
-    App->>App: tray_icon_remove(NIM_DELETE)
-    App->>WV: webview_host_cleanup()
-    App->>App: DestroyWindow() -> PostQuitMessage(0)
-    App-->>Shell: Process Terminated
-```
+- **Inno Setup 6 Installer:** Compiled via `scripts/build-installer.ps1` into `dist/MyLittleLibrary-Setup-v2.0.0.exe` (3.8 MB). Installs the app to `{autopf}\My Little Library` or `{localappdata}\Programs`, creates Desktop and Start Menu shortcuts, and registers an uninstaller in Windows Settings.
+- **Standalone Portable ZIP:** Assembled via `scripts/package.ps1` into `dist/MyLittleLibrary-v2.0.0-win64.zip` (2.1 MB) containing the native executable, dependencies, and web assets for instant zero-install execution.

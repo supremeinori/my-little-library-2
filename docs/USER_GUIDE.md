@@ -7,92 +7,71 @@
 
 ## 1. Introduction
 
-**My Little Library** is a lightweight, personal digital book organizer and reader for Windows. It lets you catalog your personal book collection, organize by category and reading status, search your library, and read PDF and EPUB documents directly in an integrated viewer.
+**My Little Library** is a personal digital library organizer and 3D physical flipbook reader for Windows. It lets you catalog, search, and preserve your books and documents offline in an editorial environment inspired by classical engraving and manga ink aesthetics.
 
 ---
 
-## 2. Getting Started
+## 2. Installation & Getting Started
 
-### Launching the Application
-Double-click `MyLittleLibrary.exe`. The application window opens with the **Dashboard** view.
+### Installation
+- **Setup Wizard (.exe):** Run `MyLittleLibrary-Setup-v2.0.0.exe`. The installer will install the application, create Start Menu and Desktop shortcuts with the official Ink Book icon, and register an uninstaller in Windows Settings.
+- **Portable ZIP:** Extract `MyLittleLibrary-v2.0.0-win64.zip` anywhere and launch `MyLittleLibrary.exe` directly.
 
 ### Understanding the Interface
-- **Sidebar (Left):**
-  - **Dashboard:** Overview of your reading progress, total books, and categories.
-  - **My Books:** Browse, search, filter, upload, and read your documents.
-- **Top Header:** Mobile-responsive menu toggle on smaller screen sizes.
+- **Top Header:**
+  - Displays the **Dynamic Ink Sketch** logo and title mark.
+  - Quick **+ Add Book** button.
+- **Floating Bottom Dock:**
+  - **Overview:** Visual dashboard with reading metrics (Total, In Progress, Completed, To Read), Currently Reading desk, and subject breakdown.
+  - **All Books:** Complete collection catalog with live search, subject filters, and status filters.
+  - **+ (Action):** Quick add book modal.
+  - **Theme Toggle:** Switch between high-contrast Light Mode (warm paper) and Dark Mode (inked paper).
+  - *Note:* The dock automatically hides when opening a book in Reader mode to ensure controls remain completely unobstructed.
 
 ---
 
 ## 3. Adding and Managing Books
 
 ### Adding a Book
-1. Navigate to **My Books** and click **+ Add Book** (or click **+ Add Book** in the empty state).
-2. **Select Document:** Drag and drop a `.pdf` or `.epub` file into the upload zone, or click **browse** to select a file from your hard drive.
-   - The book title is automatically suggested from the filename.
-3. **Fill Information:**
-   - **Title (Required):** The name of the book.
-   - **Author (Optional):** Author or editor name.
-   - **Category (Required):** Choose from *Psychology, Philosophy, Literature, Cinema, Technology, Other*.
-   - **Status (Required):** Choose *Want to Read, Reading*, or *Finished*.
-   - **Notes (Optional):** Personal reading notes, quotes, or thoughts.
-4. Click **Save Book**. The document is saved locally into your permanent desktop database.
+1. Click any **+ Add Book** button (Header or Bottom Dock).
+2. **Document Attachment:** Drag and drop a `.pdf` or `.epub` document into the drop zone, or click to browse.
+3. **Cover Artwork (Optional):** Attach an image (`.jpg`, `.png`, `.webp`) as custom cover art. If left blank, a procedural hardcover with spine depth and engraving borders is automatically generated.
+4. **Book Information:**
+   - **Title (Required):** Automatically filled from the file name if blank.
+   - **Author (Optional):** Author or translator name.
+   - **Category (Optional):** Defaults to `Any`.
+   - **Status (Optional):** Defaults to `New` (options: `New`, `Want to Read`, `Reading`, `Finished`).
+   - **Personal Notes (Optional):** Reading thoughts, shelf locations, or quotes.
+5. Click **Save Book**. The file is stored in local IndexedDB storage.
 
-### Editing a Book
-1. In the **My Books** view, click the **Pencil (✎)** icon in the top right of any book card.
-2. Update the title, author, category, reading status, or notes.
-3. Click **Save Changes**. Your attached PDF or EPUB document is preserved.
-
-### Deleting a Book
-1. Click the **Trash (🗑)** icon on the book card.
-2. A confirmation dialog will appear. Click **Delete** to confirm.
-3. Both the book metadata and the stored PDF/EPUB document file are permanently removed.
+### Editing & Custom Covers
+- Click the **Artwork Icon** on any book card to quickly upload or change its cover image.
+- Click the **Pencil Icon** to update metadata or notes.
+- Click the **Trash Icon** to permanently remove a book and its stored document.
 
 ---
 
-## 4. Reading Books
+## 4. Reading Books (3D Physical Flipbook Engine)
 
-Click the **📖 Read** button on any book card to open the integrated reader panel:
+Click **Read** or click on any 3D hardcover book object to launch the integrated reader:
 
-### Reading PDF Files
-- PDF documents open in the integrated high-performance document viewer.
-- Standard navigation tools (page controls, zoom in/out, fit to width, search within document) are available.
-- Click **🔗 Open in tab** to view the document in a dedicated browser window.
+### PDF Books (Realistic Turn-Page Flipbook)
+- **Book Spread Mode:** Displays a double-page spread with authentic physical page curling and spine shading.
+  - Turn pages by clicking **Next >** / **< Prev**, pressing arrow keys (`←` / `→`), or dragging the page corners with your mouse.
+- **Zoom & Pan:**
+  - Click **+** or **-** on the floating bottom bar, or use `Ctrl + MouseWheel` to zoom in/out.
+  - When zoomed in, click and drag with the mouse to pan across the pages. Click the percentage button to reset to 100%.
+- **Standard View Mode:** Switch to continuous vertical scroll anytime using the top mode toggle.
+- **Separate Window:** Open the document in a dedicated browser window.
 
-### Reading EPUB Files
-- EPUB documents are rendered using the bundled offline ePub engine.
-- Use the **‹ (Previous)** and **› (Next)** navigation buttons located on the sides of the reader panel to flip pages.
-
-### Closing the Reader
-- Click the **×** button in the upper right corner of the reader panel.
-- Or press the **Escape (Esc)** key on your keyboard.
-- Closing the reader immediately frees all allocated document memory.
+### EPUB Books
+- EPUBs open with paginated chapters and next/previous page overlay controls.
 
 ---
 
-## 5. System Tray & Window Controls
+## 5. System Tray & Background Operation
 
-### Minimizing to Tray (Hide-on-Close)
-- When you click the standard Windows **Close (X)** button in the top-right corner of the window, **the application does not exit**.
-- Instead, the window hides, and My Little Library continues running unobtrusively in the Windows notification area (System Tray).
-- On the first minimization, Windows displays a brief notification balloon reminding you that the app is still running.
-
-### Restoring the Window
-To reopen the application window:
-- **Left-click** or **double-click** the My Little Library icon in the system tray.
-- Or right-click the tray icon and select **Open My Little Library**.
-
-### Exiting the Application
-To completely terminate My Little Library:
-1. Right-click the My Little Library icon in the system tray.
-2. Click **Exit**.
-3. The process terminates, cleans up all background resources, and removes the tray icon.
-
----
-
-## 6. Search and Filters
-
-- **Live Search:** Type any title or author name in the search bar. The collection updates instantaneously without case sensitivity.
-- **Category Filter:** Filter by specific genre or topic.
-- **Status Filter:** Display only books you *Want to Read*, are currently *Reading*, or have *Finished*.
-- **Clear Button:** Click **Clear** to reset all search inputs and filters simultaneously.
+- **Hide-on-Close:** Clicking the window's close button (`X`) minimizes the application to the Windows notification tray instead of terminating.
+- **Restore:** Double-click or single-click the tray icon to bring the window back into focus.
+- **Context Menu:** Right-click the tray icon to select **Open My Little Library** or **Exit**.
+- **Single-Instance:** Launching a second instance automatically activates and brings the running window to the foreground.
