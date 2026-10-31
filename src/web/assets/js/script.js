@@ -1173,10 +1173,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (dockThemeToggle) dockThemeToggle.addEventListener('click', toggleTheme);
 
   const headerAdd = $('headerAddBtn');
-  if (headerAdd) headerAdd.addEventListener('click', openAddModal);
+  if (headerAdd) headerAdd.addEventListener('click', openAddForm);
 
   const dockAdd = $('dockAddBtn');
-  if (dockAdd) dockAdd.addEventListener('click', openAddModal);
+  if (dockAdd) dockAdd.addEventListener('click', openAddForm);
 
   // Navigation
   document.querySelectorAll('.nav-item').forEach(btn => {
