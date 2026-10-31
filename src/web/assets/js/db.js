@@ -85,6 +85,36 @@ async function dbSaveBook(book) {
 }
 
 /**
+ * Efficiently update reading progress for a book without modifying binary files.
+ * @param {string} bookId 
+ * @param {Object} progressData 
+ * @returns {Promise<Object|null>} Updated book record
+ */
+async function dbUpdateBookProgress(bookId, progressData) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_BOOKS, 'readwrite');
+    const store = tx.objectStore(STORE_BOOKS);
+    const getReq = store.get(bookId);
+
+    getReq.onsuccess = () => {
+      const book = getReq.result;
+      if (!book) {
+        resolve(null);
+        return;
+      }
+      Object.assign(book, progressData);
+      book.updatedAt = new Date().toISOString();
+      const putReq = store.put(book);
+      putReq.onsuccess = () => resolve(book);
+      putReq.onerror = () => reject(putReq.error);
+    };
+
+    getReq.onerror = () => reject(getReq.error);
+  });
+}
+
+/**
  * Delete a book and its corresponding document file.
  * @param {string} bookId 
  * @returns {Promise<void>}

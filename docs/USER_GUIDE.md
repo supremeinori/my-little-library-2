@@ -67,6 +67,18 @@ Click **Read** or click on any 3D hardcover book object to launch the integrated
 ### EPUB Books
 - EPUBs open with paginated chapters and next/previous page overlay controls.
 
+### 🔄 Resume Reading (Automatic Progress Tracking)
+- **Automatic Position Persistence:** Every page turn in PDF (page number) and EPUB (CFI location) is automatically saved to local IndexedDB with lightweight debouncing.
+- **Library Progress Indicators:** Book cards display live reading progress percentage bars and page counters (e.g. `Page 15 of 240 (6%)`).
+- **1-Click Resume:** Resumable books feature a dedicated **Resume** action button that jumps directly back to your exact last-read location.
+- **Reading Desk Integration:** Books in active progress appear in the Overview Focus Desk with current reading metrics.
+
+### 🧘 Distraction-Free Focus Mode (Zen Reading)
+- **Full Immersion:** Press `F` or click **Focus Mode** in the reader toolbar to expand the book spread to true fullscreen.
+- **Auto-Hiding Interface:** Top headers, floating toolbars, and cursor fade away after 2.5 seconds of mouse inactivity, dedicating 100% of the screen area to the book.
+- **Intuitive HUD & Restoration:** Moving the mouse immediately restores toolbar controls and shows a subtle status HUD.
+- **Quick Exit:** Press `Esc` or `F` anytime (or click **Exit Focus**) to return to standard windowed viewing.
+
 ---
 
 ## 5. System Tray & Background Operation

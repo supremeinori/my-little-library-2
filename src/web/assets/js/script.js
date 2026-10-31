@@ -1,12 +1,12 @@
 /**
- * My Little Library — script.js
+ * My Little Library â€” script.js
  * Editorial black & white desktop edition with realistic physical book objects,
  * IndexedDB persistence, custom cover art support, and offline reader.
  */
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Constants
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const CATEGORIES = ['Any', 'Psychology', 'Philosophy', 'Literature', 'Cinema', 'Technology', 'Other'];
 
 const STATUS_CLASS = {
@@ -16,9 +16,9 @@ const STATUS_CLASS = {
   'Finished':     'badge-status-finished',
 };
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    State
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let books               = [];   // array of book metadata objects
 let editingId           = null;
 let pendingDeleteId     = null;
@@ -42,9 +42,52 @@ const MIN_ZOOM          = 0.5;
 const MAX_ZOOM          = 2.5;
 const ZOOM_STEP         = 0.15;
 
-/* ─────────────────────────────────────────────
+// Reading Progress & Focus Mode State
+let progressSaveTimer   = null;
+let isZenMode           = false;
+let zenIdleTimer        = null;
+
+/**
+ * Efficiently persists reading progress to in-memory state and IndexedDB with debounce.
+ * @param {Object} progressData 
+ * @param {boolean} immediate 
+ */
+function saveReadingProgressDebounced(progressData, immediate = false) {
+  if (!currentReaderBook) return;
+
+  // Immediately synchronize in-memory book instances
+  Object.assign(currentReaderBook, progressData);
+  const cachedBook = books.find(b => b.id === currentReaderBook.id);
+  if (cachedBook) {
+    Object.assign(cachedBook, progressData);
+  }
+
+  const bookId = currentReaderBook.id;
+  const dataToPersist = { ...progressData };
+
+  if (immediate) {
+    if (progressSaveTimer) {
+      clearTimeout(progressSaveTimer);
+      progressSaveTimer = null;
+    }
+    dbUpdateBookProgress(bookId, dataToPersist).catch(err => {
+      console.warn('Error saving reading progress immediately:', err);
+    });
+    return;
+  }
+
+  if (progressSaveTimer) clearTimeout(progressSaveTimer);
+  progressSaveTimer = setTimeout(() => {
+    progressSaveTimer = null;
+    dbUpdateBookProgress(bookId, dataToPersist).catch(err => {
+      console.warn('Error saving reading progress debounced:', err);
+    });
+  }, 600);
+}
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Initialization & Persistence
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 async function loadData() {
   try {
     await dbMigrateLegacyLocalStorage();
@@ -58,9 +101,9 @@ async function loadData() {
   renderCollection();
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Helpers
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function generateId() {
   return 'book-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
 }
@@ -98,9 +141,9 @@ function getFileType(filename) {
   return 'unknown';
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Navigation
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function showView(viewName) {
   currentView = viewName;
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
@@ -133,9 +176,9 @@ function closeMobileSidebar() {
   if (ov) ov.classList.remove('open');
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Dashboard Rendering (Editorial Reading Desk)
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function renderDashboard() {
   const total    = books.length;
   const want     = books.filter(b => b.status === 'Want to Read').length;
@@ -161,11 +204,15 @@ function renderDashboard() {
       const card = document.createElement('article');
       card.className = 'desk-card';
       const displayTitle = formatDisplayTitle(book.title);
+      const progressLabel = (book.fileType === 'pdf' && book.lastReadPage)
+        ? `Page ${book.lastReadPage} of ${book.totalPages || '?'}`
+        : (book.readingProgress ? `${Math.round(book.readingProgress)}% completed` : '');
 
       card.innerHTML = `
         <div class="desk-card-body">
           <h3 class="desk-card-title">${esc(displayTitle)}</h3>
           <p class="desk-card-author">${esc(book.author || 'Unknown author')}</p>
+          ${progressLabel ? `<p class="desk-card-progress" style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);margin-top:4px;">${esc(progressLabel)}</p>` : ''}
         </div>
         <div class="desk-card-footer">
           <span class="badge badge-category">${esc(book.category)}</span>
@@ -230,9 +277,9 @@ function renderDashboard() {
   });
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Collection Rendering
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function getFiltered() {
   const query     = $('searchInput').value.trim().toLowerCase();
   const catFilter = $('filterCategory').value;
@@ -316,6 +363,33 @@ function buildBookCard(book) {
     ? `<div class="book-notes">${esc(book.notes)}</div>`
     : '';
 
+  let progressHtml = '';
+  if (book.readingProgress !== undefined && book.readingProgress !== null && book.readingProgress > 0) {
+    const pct = Math.min(100, Math.max(1, Math.round(book.readingProgress)));
+    const label = (book.fileType === 'pdf' && book.lastReadPage)
+      ? `Page ${book.lastReadPage} of ${book.totalPages || '?'}`
+      : `${pct}% read`;
+    progressHtml = `
+      <div class="book-progress-box">
+        <div class="book-progress-header">
+          <span class="book-progress-label">${esc(label)}</span>
+          <span class="book-progress-percent">${pct}%</span>
+        </div>
+        <div class="book-progress-track">
+          <div class="book-progress-fill" style="width: ${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  const isResumable = book.readingProgress && book.readingProgress > 0 && book.readingProgress < 100;
+  const readBtnHtml = isResumable
+    ? `<button class="book-read-btn book-read-btn--resume" data-action="read" data-id="${esc(book.id)}" title="Resume from ${book.fileType === 'pdf' && book.lastReadPage ? 'Page ' + book.lastReadPage : Math.round(book.readingProgress) + '%'}">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Resume
+       </button>`
+    : `<button class="book-read-btn" data-action="read" data-id="${esc(book.id)}">Read</button>`;
+
   card.innerHTML = `
     <!-- Physical 3D Book Object -->
     <div class="book-object-wrap" data-action="read" data-id="${esc(book.id)}" title="Click to read ${esc(displayTitle)}">
@@ -342,10 +416,11 @@ function buildBookCard(book) {
         <p class="book-author">${esc(displayAuthor)}</p>
 
         ${notesHtml}
+        ${progressHtml}
       </div>
 
       <div class="book-card-actions">
-        <button class="book-read-btn" data-action="read" data-id="${esc(book.id)}">Read</button>
+        ${readBtnHtml}
         <div class="book-card-tools">
           <button class="icon-btn" data-action="cover" data-id="${esc(book.id)}" title="Set/Change Cover Image" aria-label="Change cover for ${esc(displayTitle)}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -364,9 +439,9 @@ function buildBookCard(book) {
   return card;
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    File & Cover Upload Handling
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function resetFileState() {
   pendingFile = null;
   pendingCoverData = null;
@@ -431,9 +506,9 @@ function stageFile(file) {
   };
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Form Modals
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function openModal(id) {
   $(id).classList.remove('hidden');
 }
@@ -567,9 +642,9 @@ async function handleFormSubmit(e) {
   }
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Delete Confirmation
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function openDeleteConfirm(id) {
   const book = books.find(b => b.id === id);
   if (!book) return;
@@ -594,12 +669,12 @@ async function handleDeleteConfirm() {
   }
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Integrated Reader (PDF & ePub)
-   ───────────────────────────────────────────── */
-/* ─────────────────────────────────────────────
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    PDF Flipbook & Reader Engine
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function applyZoom(newZoom) {
   currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(newZoom * 100) / 100));
   const container = document.getElementById('flipbookContainer');
@@ -625,6 +700,11 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
   const body = $('readerBody');
   const displayTitle = formatDisplayTitle(book.title);
 
+  // Resume last read page if not explicitly provided
+  if (targetPage === 0 && book.lastReadPage && book.lastReadPage > 0) {
+    targetPage = book.lastReadPage;
+  }
+
   // Clean up previous flipbook instance if any
   if (currentFlipInstance) {
     try { currentFlipInstance.destroy(); } catch (_) {}
@@ -637,7 +717,8 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
     // Standard continuous view
     body.innerHTML = '';
     const iframe = document.createElement('iframe');
-    iframe.src = activeBlobUrl;
+    const resumeHash = (targetPage && targetPage > 1) ? `#page=${targetPage}` : '';
+    iframe.src = activeBlobUrl + resumeHash;
     iframe.title = displayTitle;
     body.appendChild(iframe);
     return;
@@ -647,7 +728,7 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
   body.innerHTML = `
     <div class="flipbook-stage" id="flipbookStage">
       <div class="flipbook-page-loading" id="flipbookLoadingMsg">
-        Preparing pages & binding book…
+        Preparing pages & binding bookâ€¦
       </div>
       <div id="flipbookWrapper" class="flipbook-wrapper is-hidden">
         <div id="flipbookContainer" class="flipbook-container"></div>
@@ -752,7 +833,7 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
       pageDiv.dataset.page = i;
       pageDiv.dataset.density = 'soft';
       pageDiv.innerHTML = `
-        <div class="flipbook-page-loading" id="pdfPageLoading-${i}">Rendering page ${i}…</div>
+        <div class="flipbook-page-loading" id="pdfPageLoading-${i}">Rendering page ${i}â€¦</div>
         <canvas class="flipbook-canvas hidden" id="pdfCanvas-${i}"></canvas>
         <span class="flipbook-page-footer">${i}</span>
       `;
@@ -764,7 +845,7 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
       const endpaper = document.createElement('div');
       endpaper.className = 'flipbook-page flipbook-page--left';
       endpaper.dataset.density = 'soft';
-      endpaper.innerHTML = `<div style="flex:1;"></div><span class="flipbook-page-footer">—</span>`;
+      endpaper.innerHTML = `<div style="flex:1;"></div><span class="flipbook-page-footer">â€”</span>`;
       container.appendChild(endpaper);
     }
 
@@ -839,8 +920,9 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
         }
       }
 
-      // Initial render for opening spread
+      // Initial render for opening spread (both left and right pages)
       const startRender = Math.max(1, targetPage);
+      if (startRender > 1) renderPdfPageCanvas(startRender - 1);
       await renderPdfPageCanvas(startRender);
       renderPdfPageCanvas(startRender + 1);
       renderPdfPageCanvas(startRender + 2);
@@ -863,6 +945,34 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
       currentFlipInstance.on('flip', (e) => {
         const currentIdx = e.data;
         updateToolbarCounter(currentIdx);
+
+        // Calculate and autosave reading progress
+        let progressPct = 0;
+        let pageNum = currentIdx;
+        if (currentIdx === 0) {
+          progressPct = 0;
+          pageNum = 1;
+        } else if (currentIdx > totalPages) {
+          progressPct = 100;
+          pageNum = totalPages;
+        } else {
+          pageNum = currentIdx;
+          progressPct = Math.min(100, Math.max(1, Math.round((currentIdx / totalPages) * 100)));
+        }
+
+        const updates = {
+          lastReadPage: pageNum,
+          totalPages: totalPages,
+          readingProgress: progressPct,
+          lastReadAt: new Date().toISOString()
+        };
+        if (currentReaderBook && (currentReaderBook.status === 'New' || currentReaderBook.status === 'Want to Read')) {
+          updates.status = 'Reading';
+        } else if (progressPct === 100 && currentReaderBook && currentReaderBook.status !== 'Finished') {
+          updates.status = 'Finished';
+        }
+        saveReadingProgressDebounced(updates);
+
         // Pre-render neighbor pages
         for (let offset = -2; offset <= 3; offset++) {
           const target = currentIdx + offset;
@@ -959,9 +1069,83 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
   }
 }
 
+function toggleZenMode(forceState) {
+  const panel = $('readerPanel');
+  if (!panel || panel.classList.contains('hidden')) return;
+
+  const newState = (forceState !== undefined) ? forceState : !isZenMode;
+  if (newState === isZenMode) return;
+  isZenMode = newState;
+
+  const zenBtn = $('readerZenBtn');
+  const zenHud = $('readerZenHud');
+
+  if (isZenMode) {
+    panel.classList.add('is-zen');
+    panel.classList.remove('is-controls-hidden');
+    if (zenBtn) zenBtn.classList.add('is-active');
+    if (zenHud) zenHud.classList.remove('hidden');
+
+    // Request Fullscreen
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
+    resetZenIdleTimer();
+    panel.addEventListener('mousemove', handleZenMouseMove);
+  } else {
+    panel.classList.remove('is-zen');
+    panel.classList.remove('is-controls-hidden');
+    if (zenBtn) zenBtn.classList.remove('is-active');
+    if (zenHud) zenHud.classList.add('hidden');
+
+    if (zenIdleTimer) {
+      clearTimeout(zenIdleTimer);
+      zenIdleTimer = null;
+    }
+    panel.removeEventListener('mousemove', handleZenMouseMove);
+
+    // Exit Fullscreen if active
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  setTimeout(() => {
+    handleWindowResize();
+  }, 150);
+}
+
+function resetZenIdleTimer() {
+  const panel = $('readerPanel');
+  if (!panel || !isZenMode) return;
+
+  panel.classList.remove('is-controls-hidden');
+
+  if (zenIdleTimer) clearTimeout(zenIdleTimer);
+  zenIdleTimer = setTimeout(() => {
+    if (isZenMode && !panel.classList.contains('hidden')) {
+      panel.classList.add('is-controls-hidden');
+    }
+  }, 2500);
+}
+
+function handleZenMouseMove() {
+  if (isZenMode) {
+    resetZenIdleTimer();
+  }
+}
+
 function handleReaderKeydown(e) {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
+
+  // Toggle Distraction-Free Focus Mode (F)
+  if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    e.preventDefault();
+    toggleZenMode();
+    return;
+  }
 
   // Zoom shortcuts
   if (e.ctrlKey && (e.key === '=' || e.key === '+')) {
@@ -988,7 +1172,12 @@ function handleReaderKeydown(e) {
     if (currentFlipInstance) currentFlipInstance.flipPrev();
     else if (currentRendition) currentRendition.prev();
   } else if (e.key === 'Escape') {
-    closeReader();
+    e.preventDefault();
+    if (isZenMode) {
+      toggleZenMode(false);
+    } else {
+      closeReader();
+    }
   }
 }
 
@@ -1089,10 +1278,55 @@ async function openReader(bookId) {
           height: '100%',
           spread: 'none',
         });
-        currentRendition.display();
+
+        // Resume from saved CFI position if available
+        if (book.lastReadCfi) {
+          currentRendition.display(book.lastReadCfi);
+        } else {
+          currentRendition.display();
+        }
 
         prevBtn.onclick = () => currentRendition.prev();
         nextBtn.onclick = () => currentRendition.next();
+
+        // Track EPUB relocation and calculate reading progress
+        currentRendition.on('relocated', (location) => {
+          if (!location || !location.start) return;
+          const cfi = location.start.cfi;
+          let pct = 0;
+          if (currentEpub.locations && currentEpub.locations.length()) {
+            pct = Math.round(currentEpub.locations.percentageFromCfi(cfi) * 100);
+          } else if (location.start.percentage) {
+            pct = Math.round(location.start.percentage * 100);
+          }
+          const updates = {
+            lastReadCfi: cfi,
+            readingProgress: pct || (currentReaderBook.readingProgress || 1),
+            lastReadAt: new Date().toISOString()
+          };
+          if (currentReaderBook && (currentReaderBook.status === 'New' || currentReaderBook.status === 'Want to Read')) {
+            updates.status = 'Reading';
+          }
+          saveReadingProgressDebounced(updates);
+        });
+
+        // Generate locations in background for percentage calculations
+        currentEpub.ready.then(() => {
+          return currentEpub.locations.generate(1000);
+        }).then(() => {
+          if (currentRendition) {
+            const loc = currentRendition.currentLocation();
+            if (loc && loc.start && currentEpub.locations) {
+              const pct = Math.round(currentEpub.locations.percentageFromCfi(loc.start.cfi) * 100);
+              saveReadingProgressDebounced({
+                lastReadCfi: loc.start.cfi,
+                readingProgress: pct,
+                lastReadAt: new Date().toISOString()
+              });
+            }
+          }
+        }).catch(() => {});
+
       } else {
         body.innerHTML = '<p style="padding:48px;text-align:center;color:#666;">ePub reader engine could not be initialized.</p>';
       }
@@ -1104,6 +1338,26 @@ async function openReader(bookId) {
 }
 
 function closeReader() {
+  if (isZenMode) {
+    toggleZenMode(false);
+  }
+
+  // Flush any pending progress save immediately
+  if (progressSaveTimer && currentReaderBook) {
+    clearTimeout(progressSaveTimer);
+    progressSaveTimer = null;
+    const bookId = currentReaderBook.id;
+    const progressData = {
+      lastReadPage: currentReaderBook.lastReadPage,
+      totalPages: currentReaderBook.totalPages,
+      readingProgress: currentReaderBook.readingProgress,
+      lastReadCfi: currentReaderBook.lastReadCfi,
+      lastReadAt: currentReaderBook.lastReadAt,
+      status: currentReaderBook.status
+    };
+    dbUpdateBookProgress(bookId, progressData).catch(() => {});
+  }
+
   $('readerPanel').classList.add('hidden');
   $('readerModeToggle').classList.add('hidden');
   document.body.style.overflow = '';
@@ -1139,11 +1393,15 @@ function closeReader() {
   }
 
   body.innerHTML = '';
+
+  // Synchronize shelf cards and overview desk cards immediately
+  renderCollection();
+  renderDashboard();
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Theme Management (Light / Dark Mode)
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function initTheme() {
   const saved = localStorage.getItem('my_little_library_theme');
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1166,9 +1424,9 @@ function toggleTheme() {
   applyTheme(next);
 }
 
-/* ─────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Event Listeners Setup
-   ───────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 document.addEventListener('DOMContentLoaded', () => {
   // Theme initialization
   initTheme();
@@ -1317,6 +1575,37 @@ document.addEventListener('DOMContentLoaded', () => {
   $('readerCloseBtn').addEventListener('click', closeReader);
   $('readerOverlay').addEventListener('click', closeReader);
 
+  const zenBtn = $('readerZenBtn');
+  if (zenBtn) {
+    zenBtn.addEventListener('click', () => toggleZenMode());
+  }
+
+  const zenExitBtn = $('readerZenExitBtn');
+  if (zenExitBtn) {
+    zenExitBtn.addEventListener('click', () => toggleZenMode(false));
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && isZenMode) {
+      toggleZenMode(false);
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (progressSaveTimer && currentReaderBook) {
+      clearTimeout(progressSaveTimer);
+      progressSaveTimer = null;
+      dbUpdateBookProgress(currentReaderBook.id, {
+        lastReadPage: currentReaderBook.lastReadPage,
+        totalPages: currentReaderBook.totalPages,
+        readingProgress: currentReaderBook.readingProgress,
+        lastReadCfi: currentReaderBook.lastReadCfi,
+        lastReadAt: currentReaderBook.lastReadAt,
+        status: currentReaderBook.status
+      }).catch(() => {});
+    }
+  });
+
   $('btnModeFlip').addEventListener('click', () => {
     if (pdfReaderMode !== 'flip' && currentReaderBlob && currentReaderBook) {
       pdfReaderMode = 'flip';
@@ -1339,7 +1628,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!$('readerPanel').classList.contains('hidden')) {
-        closeReader();
+        if (isZenMode) {
+          toggleZenMode(false);
+        } else {
+          closeReader();
+        }
       } else if (!$('formModal').classList.contains('hidden')) {
         closeModal('formModal');
       } else if (!$('deleteModal').classList.contains('hidden')) {
