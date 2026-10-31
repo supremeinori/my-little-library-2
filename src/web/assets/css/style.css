@@ -332,6 +332,25 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   display: none;
 }
 
+.dock-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.dock-info-btn:hover {
+  background: var(--surface-muted);
+  transform: scale(1.06);
+}
+
 /* â”€â”€ Main View Container (No Sidebar) â”€â”€ */
 .main {
   margin: 0 auto;
@@ -1409,6 +1428,193 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.4;
+}
+
+/* ── About & Updates Modal ── */
+.about-modal {
+  max-width: 520px;
+}
+
+.about-app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.about-app-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.about-app-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.about-app-name {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.about-app-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 6px 0;
+}
+
+.about-meta-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge-version {
+  background: var(--text);
+  color: var(--text-inverse);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.about-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* Update Card */
+.update-card {
+  border: 1.5px solid var(--border-dark);
+  background: var(--surface-subtle);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 16px 0;
+  box-shadow: 3px 3px 0px var(--manga-shadow-color);
+}
+
+.update-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.update-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.update-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.update-status-msg {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+}
+
+.update-status--checking {
+  color: var(--text);
+}
+
+.update-status--latest {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.update-status--available {
+  color: var(--text);
+  border-color: var(--border-dark);
+  background: var(--surface);
+}
+
+.update-status--error {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.update-refresh-icon.is-spinning {
+  animation: updateSpin 0.75s linear infinite;
+}
+
+@keyframes updateSpin {
+  100% { transform: rotate(360deg); }
+}
+
+.update-release-box {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.update-release-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.update-release-tag {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.update-release-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.update-release-notes {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-height: 110px;
+  overflow-y: auto;
+  background: var(--surface);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.update-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.about-footer-info {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.about-footer-info p {
+  margin: 3px 0;
 }
 
 /* â”€â”€ Refined Reader Subsystem â”€â”€ */

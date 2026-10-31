@@ -47,6 +47,11 @@ let progressSaveTimer   = null;
 let isZenMode           = false;
 let zenIdleTimer        = null;
 
+// Application Version & Update State
+const CURRENT_APP_VERSION = 'v2.1.1';
+const GITHUB_REPO = 'supremeinori/my-little-library-2';
+let isCheckingUpdate = false;
+
 /**
  * Efficiently persists reading progress to in-memory state and IndexedDB with debounce.
  * @param {Object} progressData 
@@ -515,6 +520,150 @@ function openModal(id) {
 
 function closeModal(id) {
   $(id).classList.add('hidden');
+}
+
+/* ─────────────────────────────────────────────
+   About & Update Management
+   ───────────────────────────────────────────── */
+function openAboutModal() {
+  const versionBadge = $('aboutCurrentVersion');
+  if (versionBadge) versionBadge.textContent = CURRENT_APP_VERSION;
+  openModal('aboutModal');
+}
+
+function parseVersion(vStr) {
+  if (!vStr) return [0, 0, 0];
+  const clean = vStr.replace(/^v/i, '').trim();
+  const parts = clean.split('.').map(n => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  return parts;
+}
+
+function isNewerVersion(remoteStr, localStr) {
+  const [rMaj, rMin, rPat] = parseVersion(remoteStr);
+  const [lMaj, lMin, lPat] = parseVersion(localStr);
+  if (rMaj !== lMaj) return rMaj > lMaj;
+  if (rMin !== lMin) return rMin > lMin;
+  return rPat > lPat;
+}
+
+async function checkForUpdates() {
+  if (isCheckingUpdate) return;
+  isCheckingUpdate = true;
+
+  const btn = $('btnCheckUpdates');
+  const icon = $('updateIcon');
+  const statusMsg = $('updateStatusMsg');
+  const releaseBox = $('updateReleaseBox');
+
+  if (btn) btn.disabled = true;
+  if (icon) icon.classList.add('is-spinning');
+  if (releaseBox) releaseBox.classList.add('hidden');
+  if (statusMsg) {
+    statusMsg.className = 'update-status-msg update-status--checking';
+    statusMsg.textContent = 'Connecting to GitHub Releases API…';
+  }
+
+  try {
+    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // Fallback: check repository tags if no formal release object exists yet
+        const tagsRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/tags`);
+        if (tagsRes.ok) {
+          const tags = await tagsRes.json();
+          if (Array.isArray(tags) && tags.length > 0) {
+            handleReleaseData({
+              tag_name: tags[0].name,
+              name: tags[0].name,
+              body: 'Latest release from GitHub repository tags.',
+              html_url: `https://github.com/${GITHUB_REPO}/releases`,
+              assets: []
+            });
+            return;
+          }
+        }
+      }
+      throw new Error(`GitHub API responded with status ${response.status}`);
+    }
+
+    const release = await response.json();
+    handleReleaseData(release);
+
+  } catch (err) {
+    console.warn('Update check failed:', err);
+    if (statusMsg) {
+      statusMsg.className = 'update-status-msg update-status--error';
+      statusMsg.innerHTML = `
+        <span>Could not check updates. Check network or <a href="https://github.com/${GITHUB_REPO}/releases" target="_blank" style="text-decoration:underline;color:inherit;font-weight:600;">visit GitHub</a>.</span>
+      `;
+    }
+  } finally {
+    isCheckingUpdate = false;
+    if (btn) btn.disabled = false;
+    if (icon) icon.classList.remove('is-spinning');
+  }
+}
+
+function handleReleaseData(release) {
+  const statusMsg = $('updateStatusMsg');
+  const releaseBox = $('updateReleaseBox');
+  const latestTag = release.tag_name || CURRENT_APP_VERSION;
+
+  if (isNewerVersion(latestTag, CURRENT_APP_VERSION)) {
+    // New version available!
+    if (statusMsg) {
+      statusMsg.className = 'update-status-msg update-status--available';
+      statusMsg.innerHTML = `<span><strong>Update Available!</strong> Versi baru <strong>${esc(latestTag)}</strong> siap diunduh.</span>`;
+    }
+
+    if (releaseBox) {
+      releaseBox.classList.remove('hidden');
+      $('updateReleaseTag').textContent = `${release.name || latestTag} (${latestTag})`;
+
+      if (release.published_at) {
+        const dateStr = new Date(release.published_at).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        $('updateReleaseDate').textContent = `Published: ${dateStr}`;
+      } else {
+        $('updateReleaseDate').textContent = '';
+      }
+
+      $('updateReleaseNotes').textContent = release.body || 'Includes performance optimizations, bug fixes, and latest reader engine updates.';
+
+      // Determine direct installer download URL
+      let downloadUrl = `https://github.com/${GITHUB_REPO}/raw/main/dist/MyLittleLibrary-Setup-v2.0.0.exe`;
+      if (release.assets && release.assets.length > 0) {
+        const exeAsset = release.assets.find(a => a.name.endsWith('.exe'));
+        if (exeAsset && exeAsset.browser_download_url) {
+          downloadUrl = exeAsset.browser_download_url;
+        }
+      }
+
+      $('btnDownloadUpdate').onclick = () => {
+        window.open(downloadUrl, '_blank');
+      };
+      $('btnViewOnGithub').href = release.html_url || `https://github.com/${GITHUB_REPO}/releases`;
+    }
+
+  } else {
+    // App is up to date!
+    if (statusMsg) {
+      statusMsg.className = 'update-status-msg update-status--latest';
+      statusMsg.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>My Little Library is up to date (current version <strong>${CURRENT_APP_VERSION}</strong>).</span>
+      `;
+    }
+    if (releaseBox) releaseBox.classList.add('hidden');
+  }
 }
 
 function openAddForm() {
@@ -1447,6 +1596,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const dockAdd = $('dockAddBtn');
   if (dockAdd) dockAdd.addEventListener('click', openAddForm);
 
+  const dockAbout = $('dockAboutBtn');
+  if (dockAbout) dockAbout.addEventListener('click', openAboutModal);
+
+  const headerBrand = $('headerBrand');
+  if (headerBrand) headerBrand.addEventListener('click', openAboutModal);
+
+  const aboutClose = $('aboutModalClose');
+  if (aboutClose) aboutClose.addEventListener('click', () => closeModal('aboutModal'));
+
+  const checkUpdatesBtn = $('btnCheckUpdates');
+  if (checkUpdatesBtn) checkUpdatesBtn.addEventListener('click', checkForUpdates);
+
   // Navigation
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => showView(btn.dataset.view));
@@ -1642,6 +1803,8 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal('formModal');
       } else if (!$('deleteModal').classList.contains('hidden')) {
         closeModal('deleteModal');
+      } else if (!$('aboutModal').classList.contains('hidden')) {
+        closeModal('aboutModal');
       }
     }
   });

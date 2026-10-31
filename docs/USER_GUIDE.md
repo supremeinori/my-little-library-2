@@ -87,3 +87,12 @@ Click **Read** or click on any 3D hardcover book object to launch the integrated
 - **Restore:** Double-click or single-click the tray icon to bring the window back into focus.
 - **Context Menu:** Right-click the tray icon to select **Open My Little Library** or **Exit**.
 - **Single-Instance:** Launching a second instance automatically activates and brings the running window to the foreground.
+
+---
+
+## 6. Checking for Software Updates
+
+- **About & Updates Dialog:** Click the **ⓘ** button in the bottom floating dock or click the **My Little Library** logo in the top header.
+- **1-Click GitHub Verification:** Click **Check for Updates** to automatically query the official GitHub Releases API.
+- **Release Notes & Direct Download:** When a newer release is published, the dialog displays the update changelog alongside a direct **Download & Update (.exe)** button.
+- **Safe In-Place Upgrades:** Running the downloaded installer updates the application binaries while keeping all your stored books, covers, notes, and reading positions completely safe in `%LOCALAPPDATA%`.
