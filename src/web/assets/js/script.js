@@ -659,8 +659,8 @@ function handleReleaseData(release) {
 
       $('updateReleaseNotes').textContent = release.body || 'Includes performance optimizations, bug fixes, and latest reader engine updates.';
 
-      // Determine direct installer download URL
-      let downloadUrl = `https://github.com/${GITHUB_REPO}/raw/main/dist/MyLittleLibrary-Setup-v2.0.0.exe`;
+      // Determine direct installer download URL (prefer direct release asset, fallback to tag release asset)
+      let downloadUrl = `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/MyLittleLibrary-Setup-${latestTag}.exe`;
       if (release.assets && release.assets.length > 0) {
         const exeAsset = release.assets.find(a => a.name.endsWith('.exe'));
         if (exeAsset && exeAsset.browser_download_url) {

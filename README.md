@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-Setup-v2.2.1.exe">
+  <a href="https://github.com/supremeinori/my-little-library-2/releases/download/v2.2.1/MyLittleLibrary-Setup-v2.2.1.exe">
     <img src="https://img.shields.io/badge/Download_Installer_(.exe)-v2.2.1_Latest-111111?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows Installer (.exe)" />
   </a>
   &nbsp;
-  <a href="https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-v2.2.1-win64.zip">
+  <a href="https://github.com/supremeinori/my-little-library-2/releases/download/v2.2.1/MyLittleLibrary-v2.2.1-win64.zip">
     <img src="https://img.shields.io/badge/Download_Portable_(.zip)-v2.2.1-555555?style=for-the-badge&logo=archive&logoColor=white" alt="Download Portable ZIP" />
   </a>
 </p>
@@ -85,12 +85,12 @@ Whether organizing academic monographs, classic literature, manga, or technical 
 ## 🚀 Quick Download & Installation
 
 ### Option 1: 1-Click Windows Installer (Recommended)
-1. Download **[MyLittleLibrary-Setup-v2.2.1.exe](https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-Setup-v2.2.1.exe)**.
+1. Download **[MyLittleLibrary-Setup-v2.2.1.exe](https://github.com/supremeinori/my-little-library-2/releases/download/v2.2.1/MyLittleLibrary-Setup-v2.2.1.exe)**.
 2. Run the setup executable.
 3. The wizard installs the app, creates Desktop and Start Menu shortcuts with the official Ink Book icon, and registers a clean uninstaller in Windows Settings.
 
 ### Option 2: Portable Archive (.zip)
-1. Download **[MyLittleLibrary-v2.2.1-win64.zip](https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-v2.2.1-win64.zip)**.
+1. Download **[MyLittleLibrary-v2.2.1-win64.zip](https://github.com/supremeinori/my-little-library-2/releases/download/v2.2.1/MyLittleLibrary-v2.2.1-win64.zip)**.
 2. Extract the folder anywhere.
 3. Run `MyLittleLibrary.exe` directly (no administrator privileges required).
 
