@@ -1,6 +1,6 @@
 # User Guide: My Little Library — Windows Desktop Edition
 
-**Version:** 2.0.0  
+**Version:** 2.2.1  
 **Platform:** Windows 10 & Windows 11  
 
 ---
@@ -14,8 +14,8 @@
 ## 2. Installation & Getting Started
 
 ### Installation
-- **Setup Wizard (.exe):** Run `MyLittleLibrary-Setup-v2.0.0.exe`. The installer will install the application, create Start Menu and Desktop shortcuts with the official Ink Book icon, and register an uninstaller in Windows Settings.
-- **Portable ZIP:** Extract `MyLittleLibrary-v2.0.0-win64.zip` anywhere and launch `MyLittleLibrary.exe` directly.
+- **Setup Wizard (.exe):** Run `MyLittleLibrary-Setup-v2.2.1.exe`. The installer will install the application, create Start Menu and Desktop shortcuts with the official Ink Book icon, and register an uninstaller in Windows Settings.
+- **Portable ZIP:** Extract `MyLittleLibrary-v2.2.1-win64.zip` anywhere and launch `MyLittleLibrary.exe` directly.
 
 ### Understanding the Interface
 - **Top Header:**
@@ -60,7 +60,7 @@ Click **Read** or click on any 3D hardcover book object to launch the integrated
   - Turn pages by clicking **Next >** / **< Prev**, pressing arrow keys (`←` / `→`), or dragging the page corners with your mouse.
 - **Zoom & Pan:**
   - Click **+** or **-** on the floating bottom bar, or use `Ctrl + MouseWheel` to zoom in/out.
-  - When zoomed in, click and drag with the mouse to pan across the pages. Click the percentage button to reset to 100%.
+  - When zoomed in, hold `Ctrl` and drag with the mouse to pan across the pages.
 - **Standard View Mode:** Switch to continuous vertical scroll anytime using the top mode toggle.
 - **Separate Window:** Open the document in a dedicated browser window.
 
@@ -73,15 +73,53 @@ Click **Read** or click on any 3D hardcover book object to launch the integrated
 - **1-Click Resume:** Resumable books feature a dedicated **Resume** action button that jumps directly back to your exact last-read location.
 - **Reading Desk Integration:** Books in active progress appear in the Overview Focus Desk with current reading metrics.
 
-### 🧘 Distraction-Free Focus Mode (Zen Reading)
-- **Full Immersion:** Press `F` or click **Focus Mode** in the reader toolbar to expand the book spread to true fullscreen.
-- **Auto-Hiding Interface:** Top headers, floating toolbars, and cursor fade away after 2.5 seconds of mouse inactivity, dedicating 100% of the screen area to the book.
-- **Intuitive HUD & Restoration:** Moving the mouse immediately restores toolbar controls and shows a subtle status HUD.
-- **Quick Exit:** Press `Esc` or `F` anytime (or click **Exit Focus**) to return to standard windowed viewing.
+### 🧘 Default Focus Mode & Edge Eye Toggle
+- **Zero-Distraction Reading by Default:** Opening any book immediately engages Focus Mode. Bilah kontrol (*topbar* dan *toolbar*) tersembunyi secara otomatis saat membaca.
+- **No Unwanted Mouse Interruptions:** Menggerakkan kursor di layar **tidak akan** memunculkan tombol kembali, menjaga fokus membaca 100%.
+- **Manual Edge Eye Toggle (`👁️`):** Klik tombol mata kecil di tepi kiri atas pembaca (atau tekan tombol `F` pada keyboard) kapan saja untuk menampilkan atau menyembunyikan bilah kontrol.
+- **Zero Overlap:** Bilah kontrol memiliki indentasi khusus sehingga tidak pernah bertabrakan atau menutupi tombol mata.
 
 ---
 
-## 5. System Tray & Background Operation
+## 5. 🤖 Integrated Multi-AI Companion
+
+Bahas dan tanyakan isi buku langsung saat membaca tanpa perlu membuka browser luar:
+
+- **Buka / Tutup AI Companion:** Klik tombol **AI Companion** di bilah pembaca atau tekan pintasan `Alt + A`.
+- **Multi-Provider Dropdown:** Pilih asisten AI favoritmu melalui dropdown di bilah atas:
+  - ♊ **Google Gemini**
+  - 🟢 **OpenAI ChatGPT**
+  - 🟣 **Anthropic Claude**
+  - 🔍 **Perplexity AI**
+- **Non-Overlapping Split Layout:** Tampilan buku di sebelah kiri dan AI di sebelah kanan berjalan berdampingan tanpa saling menimpa.
+- **Workflow Snipping Screenshot:**
+  1. Temukan bagian teks, grafik, atau rumus matematika yang sulit dipahami.
+  2. Tekan `Win + Shift + S` untuk mengambil screenshot area buku.
+  3. Klik kolom chat AI dan tekan `Ctrl + V` untuk menempelkan gambar lalu ajukan pertanyaanmu!
+- **Sesi Login Tersimpan:** Semua login akun (Google, OpenAI, Claude) tersimpan secara permanen di profil native WebView2 lokal.
+
+---
+
+## 6. ⌨️ Keyboard & Navigation Shortcuts
+
+Klik tombol **Shortcuts** di bilah kontrol pembaca untuk membuka kartu ringkasan shortcut lengkap:
+
+| Kategori | Shortcut | Fungsi |
+|---|---|---|
+| **Navigasi Membaca** | `→` / `Page Down` / Klik Kanan | Halaman berikutnya / Balik maju |
+| | `←` / `Page Up` / Klik Kiri | Halaman sebelumnya / Balik mundur |
+| | `Space` / `Shift + Space` | Balik halaman maju / mundur |
+| | `Ctrl` + Scroll Mouse | Zoom In / Zoom Out |
+| | `Ctrl` + Klik & Geser | Pan / Geser kanvas saat zoom |
+| | `Esc` | Tutup pembaca buku |
+| **AI Companion** | `Alt + A` | Buka / Tutup panel samping AI Companion |
+| | `Win + Shift + S` | Screenshot cuplikan buku via Windows Snipping Tool |
+| | `Ctrl + V` | Tempel screenshot langsung ke chat AI |
+| **Tampilan & Kontrol** | Tombol Mata (`👁️`) / `F` | Tampilkan atau sembunyikan bilah kontrol reader |
+
+---
+
+## 7. System Tray & Background Operation
 
 - **Hide-on-Close:** Clicking the window's close button (`X`) minimizes the application to the Windows notification tray instead of terminating.
 - **Restore:** Double-click or single-click the tray icon to bring the window back into focus.
@@ -90,9 +128,9 @@ Click **Read** or click on any 3D hardcover book object to launch the integrated
 
 ---
 
-## 6. Checking for Software Updates
+## 8. Checking for Software Updates & Seamless Auto-Updater
 
 - **About & Updates Dialog:** Click the **ⓘ** button in the bottom floating dock or click the **My Little Library** logo in the top header.
 - **1-Click GitHub Verification:** Click **Check for Updates** to automatically query the official GitHub Releases API.
-- **Release Notes & Direct Download:** When a newer release is published, the dialog displays the update changelog alongside a direct **Download & Update (.exe)** button.
-- **Safe In-Place Upgrades:** Running the downloaded installer updates the application binaries while keeping all your stored books, covers, notes, and reading positions completely safe in `%LOCALAPPDATA%`.
+- **Seamless Auto-Updater:** Jika ada versi baru (misal `v2.2.1`), klik **Update Sekarang & Restart**. Aplikasi akan mengunduh paket instalasi di latar belakang, menjalankan instalasi secara senyap (*silent update*), dan me-restart aplikasi ke versi terbaru tanpa menghilangkan data buku sama sekali!
+- **Safe In-Place Upgrades:** Seluruh file buku, cover art, dan progress membaca tersimpan aman di database lokal `%LOCALAPPDATA%\MyLittleLibrary\WebView2Data`.

@@ -11,12 +11,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-Setup-v2.0.0.exe">
-    <img src="https://img.shields.io/badge/Download_Installer_(.exe)-v2.0.0_Ready-111111?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows Installer (.exe)" />
+  <a href="https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-Setup-v2.2.1.exe">
+    <img src="https://img.shields.io/badge/Download_Installer_(.exe)-v2.2.1_Latest-111111?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows Installer (.exe)" />
   </a>
   &nbsp;
-  <a href="https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-v2.0.0-win64.zip">
-    <img src="https://img.shields.io/badge/Download_Portable_(.zip)-2.1_MB-555555?style=for-the-badge&logo=archive&logoColor=white" alt="Download Portable ZIP" />
+  <a href="https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-v2.2.1-win64.zip">
+    <img src="https://img.shields.io/badge/Download_Portable_(.zip)-v2.2.1-555555?style=for-the-badge&logo=archive&logoColor=white" alt="Download Portable ZIP" />
   </a>
 </p>
 
@@ -41,11 +41,27 @@ Whether organizing academic monographs, classic literature, manga, or technical 
 
 ## ✨ Key Features
 
-### 📚 Realistic 3D Physical Flipbook Engine
+### 📚 Realistic 3D Physical Flipbook Engine & Default Focus Mode
 - **Turn-Page Simulation:** Double-page book spread with authentic physics, dynamic spine shadows, and corner-dragging page turns.
-- **Full Zoom & Pan:** Smooth zoom in, zoom out, reset, and click-and-drag panning.
+- **Default Focus Mode:** Every book opens in full immersion by default. Controls remain hidden while reading with **zero unwanted interruptions from mouse movement**.
+- **Manual Edge Eye Toggle:** A discrete button on the left edge (`👁️` / `F`) lets you effortlessly show or hide reader controls on demand, guaranteed with **zero overlap**.
+- **Full Zoom & Pan:** Smooth zoom in, zoom out, reset, and `Ctrl + Click & Drag` canvas panning.
 - **Dual Reader Modes:** Switch between realistic **Book Spread** and continuous **Standard View** with one click.
 - **100% Offline PDF & EPUB:** Powered by offline `pdf.js`, `page-flip.js`, and `epub.min.js`.
+
+### 🤖 Integrated Multi-AI Companion (Win32 Split Pane)
+- **Multi-AI Provider Dropdown:** Query **Google Gemini**, **OpenAI ChatGPT**, **Anthropic Claude**, or **Perplexity AI** in a compact reader dropdown.
+- **True Win32 Split Layout:** Zero DirectX swapchain occlusion (`ApplySplitLayout`) — reader canvas and native AI pane operate side-by-side with zero pixel overlap.
+- **Windows Snipping Tool Flow:** Capture difficult passages, diagrams, or math formulas using `Win + Shift + S`, then paste (`Ctrl + V`) directly into the AI chat to discuss your books.
+- **Permanent Login Sessions:** Utilizes native secondary WebView2 environment, keeping your AI credentials securely preserved.
+
+### ⌨️ Unified Shortcuts Dialog
+- **Distraction-Free Topbar:** Removed scattered hint text in favor of a single **Shortcuts** button.
+- **Comprehensive Cheatsheet:** Categorized keyboard and mouse shortcut guide covering reading navigation, AI companion controls, and display preferences.
+
+### 🔄 In-App Seamless Auto-Updater
+- **1-Click GitHub Verification:** Check for software updates directly from the About dialog.
+- **Background Silent Update:** Downloads the latest installer in the background, executes silent Inno Setup installation, and restarts the application automatically.
 
 ### ✒️ Signature Manga Ink Aesthetics
 - **Manga Screen-Tone Shadows:** Drop shadows rendered with tactile 45° cross-hatching and crisp pen outlines.
@@ -59,7 +75,7 @@ Whether organizing academic monographs, classic literature, manga, or technical 
 - **Auto-Concealment:** Dock intelligently disappears during reading mode so reading controls are never obstructed.
 
 ### ⚡ Blazing Fast Native Performance
-- **Win32 C Host:** Pure Win32 API and WebView2 host compiling to a tiny **94 KB** executable.
+- **Win32 C Host:** Pure Win32 API and WebView2 host compiling to a tiny **104 KB** executable.
 - **Minimal RAM Footprint:** Consumes only **~19 MB RAM** in background idle (vs 150–300 MB in Electron alternatives).
 - **System Tray Integration:** Hide-on-close to the Windows system tray with right-click restore and single-instance Named Mutex protection.
 - **IndexedDB Storage:** Stores hundreds of PDF and EPUB files locally inside modern browser storage with no storage quota bottlenecks.
@@ -69,12 +85,12 @@ Whether organizing academic monographs, classic literature, manga, or technical 
 ## 🚀 Quick Download & Installation
 
 ### Option 1: 1-Click Windows Installer (Recommended)
-1. Download **[MyLittleLibrary-Setup-v2.0.0.exe](https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-Setup-v2.0.0.exe)**.
+1. Download **[MyLittleLibrary-Setup-v2.2.1.exe](https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-Setup-v2.2.1.exe)**.
 2. Run the setup executable.
 3. The wizard installs the app, creates Desktop and Start Menu shortcuts with the official Ink Book icon, and registers a clean uninstaller in Windows Settings.
 
 ### Option 2: Portable Archive (.zip)
-1. Download **[MyLittleLibrary-v2.0.0-win64.zip](https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-v2.0.0-win64.zip)**.
+1. Download **[MyLittleLibrary-v2.2.1-win64.zip](https://github.com/supremeinori/my-little-library-2/raw/main/dist/MyLittleLibrary-v2.2.1-win64.zip)**.
 2. Extract the folder anywhere.
 3. Run `MyLittleLibrary.exe` directly (no administrator privileges required).
 

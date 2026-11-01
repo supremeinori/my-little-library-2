@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.1] — 2026-11-02
+
+### Added
+- **Default Focus Mode & Manual Eye Toggle:** Immersive reading by default; mouse movement no longer interrupts the reading view. Reader controls are toggled strictly on demand via the left-edge Eye button (`👁️` / `F`).
+- **Unified Shortcuts Dialog:** Added dedicated `#shortcutsModal` with comprehensive keyboard and mouse navigation cheat sheet.
+- **Backdrop Z-Index Elevation:** Increased `.modal-backdrop` z-index to 3000 to cleanly float above the reader canvas.
+
+---
+
+## [2.2.0] — 2026-10-31
+
+### Added
+- **Native Multi-AI Companion Sidebar:** Integrated side-by-side companion pane running Google Gemini, OpenAI ChatGPT, Anthropic Claude, and Perplexity AI.
+- **Win32 Non-Overlapping Split Layout (`ApplySplitLayout`):** Solved DirectX swapchain occlusion between multiple WebView2 controllers by maintaining strictly partitioned client bounds.
+- **Manga-Styled AI Provider Dropdown:** Compact provider switcher in reader topbar replacing bulky horizontal pill tabs.
+- **Snipping Tool Flow:** Built-in guidance for `Win + Shift + S` capture and `Ctrl + V` direct paste into AI chat.
+- **Standard Desktop User-Agent:** Configured `ICoreWebView2Settings2` on AI companion controller to prevent Google account login blocks.
+
+---
+
+## [2.1.0] — 2026-10-31
+
+### Added
+- **In-App Seamless Auto-Updater:** Automated background download and silent Inno Setup installation (`/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`) with automatic application relaunch.
+- **GitHub Releases Integration:** 1-click update check against GitHub API directly in the About dialog.
+- **Desktop Shortcut Tool:** Added `scripts/create-shortcut.ps1` with shell icon cache refresh.
+
+---
+
 ## [2.0.0] — 2026-10-31
 
 ### Added
