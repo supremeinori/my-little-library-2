@@ -266,7 +266,7 @@
             <h3 class="about-app-name">My Little Library</h3>
             <p class="about-app-desc">Personal Digital Archive & 3D Physical Flipbook Reader</p>
             <div class="about-meta-row">
-              <span class="badge badge-version" id="aboutCurrentVersion">v2.2.0</span>
+              <span class="badge badge-version" id="aboutCurrentVersion">v2.2.1</span>
               <span class="badge badge-file">Win32 C + WebView2</span>
               <span class="badge badge-category">100% Offline</span>
             </div>
@@ -333,7 +333,86 @@
     </div>
   </div>
 
-  <!-- â”€â”€ HIDDEN QUICK COVER UPLOAD INPUT â”€â”€ -->
+  <!-- Shortcuts Modal -->
+  <div class="modal-backdrop hidden" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsModalTitle">
+    <div class="modal shortcuts-modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="shortcutsModalTitle">Keyboard &amp; Navigation Shortcuts</h2>
+        <button class="modal-close" id="shortcutsModalClose" aria-label="Close shortcuts dialog">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="shortcuts-modal-body">
+        <div class="shortcuts-section">
+          <h4 class="shortcuts-section-title">Navigasi Halaman &amp; Membaca</h4>
+          <div class="shortcuts-list">
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>→</kbd> / <kbd>Page Down</kbd> / Klik Kanan</div>
+              <div class="shortcut-desc">Halaman berikutnya / Balik maju</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>←</kbd> / <kbd>Page Up</kbd> / Klik Kiri</div>
+              <div class="shortcut-desc">Halaman sebelumnya / Balik mundur</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Space</kbd> / <kbd>Shift</kbd>+<kbd>Space</kbd></div>
+              <div class="shortcut-desc">Gulir / Balik halaman maju atau mundur</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Scroll Mouse</kbd></div>
+              <div class="shortcut-desc">Perbesar (Zoom In) / Perkecil (Zoom Out)</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Ctrl</kbd> + Klik &amp; Geser</div>
+              <div class="shortcut-desc">Geser tampilan kanvas buku saat diperbesar</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Esc</kbd></div>
+              <div class="shortcut-desc">Tutup pembaca buku</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shortcuts-section">
+          <h4 class="shortcuts-section-title">AI Companion</h4>
+          <div class="shortcuts-list">
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Alt</kbd> + <kbd>A</kbd></div>
+              <div class="shortcut-desc">Buka atau tutup panel samping AI Companion</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></div>
+              <div class="shortcut-desc">Ambil tangkapan layar (screenshot) teks atau ilustrasi buku</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>V</kbd></div>
+              <div class="shortcut-desc">Tempel (paste) screenshot langsung ke chat AI</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shortcuts-section">
+          <h4 class="shortcuts-section-title">Tampilan &amp; Kontrol</h4>
+          <div class="shortcuts-list">
+            <div class="shortcut-row">
+              <div class="shortcut-keys">Tombol Mata Tepi Kiri (<kbd>👁</kbd>)</div>
+              <div class="shortcut-desc">Tampilkan atau sembunyikan bilah kontrol</div>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-keys"><kbd>F</kbd></div>
+              <div class="shortcut-desc">Toggle bilah kontrol on / off via keyboard</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="shortcutsCloseBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="quickCoverInput" accept="image/png,image/jpeg,image/webp" class="hidden" />
 
   <!-- Floating Bottom Pill Dock Navigation -->
@@ -367,6 +446,11 @@
 
   <!-- â”€â”€ INTEGRATED READER PANEL â”€â”€ -->
   <div class="reader-panel hidden" id="readerPanel">
+    <!-- Edge Controls Toggle (Discrete button on left edge to show/lock controls) -->
+    <button type="button" class="reader-edge-toggle" id="readerControlsToggle" title="Tampilkan / Kunci Bilah Kontrol" aria-label="Toggle reader controls">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+
     <div class="reader-topbar">
       <div class="reader-book-info">
         <span class="reader-title" id="readerTitle"></span>
@@ -376,24 +460,15 @@
 
       <!-- AI Provider Switcher Bar (Visible when AI Companion is open) -->
       <div class="ai-topbar-bar hidden" id="aiCompanionBar">
-        <div class="ai-provider-pills">
-          <button type="button" class="ai-pill is-active" data-provider="gemini" title="Google Gemini">
-            <span>♊ Gemini</span>
-          </button>
-          <button type="button" class="ai-pill" data-provider="chatgpt" title="OpenAI ChatGPT">
-            <span>🟢 ChatGPT</span>
-          </button>
-          <button type="button" class="ai-pill" data-provider="claude" title="Anthropic Claude">
-            <span>🟣 Claude</span>
-          </button>
-          <button type="button" class="ai-pill" data-provider="perplexity" title="Perplexity AI">
-            <span>🔍 Perplexity</span>
-          </button>
+        <div class="ai-select-wrap">
+          <select id="aiProviderSelect" class="ai-select" title="Pilih AI Companion" aria-label="Pilih AI Companion">
+            <option value="gemini">♊ Google Gemini</option>
+            <option value="chatgpt">🟢 OpenAI ChatGPT</option>
+            <option value="claude">🟣 Anthropic Claude</option>
+            <option value="perplexity">🔍 Perplexity AI</option>
+          </select>
         </div>
         <div class="ai-topbar-actions">
-          <span class="ai-snip-hint" title="Tekan Win + Shift + S untuk screenshot cuplikan buku, lalu Ctrl + V di chat AI!">
-            📸 Win+Shift+S
-          </span>
           <button type="button" class="ai-icon-btn" id="aiReloadBtn" title="Reload AI Page">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           </button>
@@ -420,21 +495,14 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3m-3.5-6.5-2.1 2.1m-8.8 8.8-2.1 2.1m0-13 2.1 2.1m8.8 8.8 2.1 2.1"/></svg>
           <span>AI Companion</span>
         </button>
-        <button type="button" class="btn btn-secondary btn-sm" id="readerZenBtn" title="Distraction-Free Focus Mode (F)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-          Focus Mode
+        <button type="button" class="btn btn-secondary btn-sm" id="readerShortcutsBtn" title="Keyboard & Navigation Shortcuts">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg>
+          <span>Shortcuts</span>
         </button>
         <button class="reader-close-btn" id="readerCloseBtn" aria-label="Close reader">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-    </div>
-    <div class="reader-zen-hud hidden" id="readerZenHud">
-      <span class="reader-zen-pill">Focus Mode &bull; Press <strong>Esc</strong> or <strong>F</strong> to exit</span>
-      <button type="button" class="reader-zen-exit-btn" id="readerZenExitBtn" title="Exit Focus Mode (Esc)">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-        Exit Focus
-      </button>
     </div>
     <div class="reader-body" id="readerBody"></div>
   </div>

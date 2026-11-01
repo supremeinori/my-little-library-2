@@ -10,8 +10,8 @@ IDI_APP_ICON ICON "app.ico"
 
 // Version Information
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     2,2,0,0
-PRODUCTVERSION  2,2,0,0
+FILEVERSION     2,2,1,0
+PRODUCTVERSION  2,2,1,0
 FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
 FILEFLAGS       VS_FF_DEBUG
@@ -28,12 +28,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "My Little Library\0"
             VALUE "FileDescription",  "My Little Library — Windows Desktop Edition\0"
-            VALUE "FileVersion",      "2.2.0.0\0"
+            VALUE "FileVersion",      "2.2.1.0\0"
             VALUE "InternalName",     "MyLittleLibrary\0"
             VALUE "LegalCopyright",   "Copyright (C) 2026 My Little Library Contributors\0"
             VALUE "OriginalFilename", "MyLittleLibrary.exe\0"
             VALUE "ProductName",      "My Little Library\0"
-            VALUE "ProductVersion",   "2.2.0.0\0"
+            VALUE "ProductVersion",   "2.2.1.0\0"
         END
     END
     BLOCK "VarFileInfo"

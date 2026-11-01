@@ -1170,7 +1170,7 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000;
   padding: 20px;
   backdrop-filter: blur(4px);
 }
@@ -1696,13 +1696,61 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
 }
 
 .reader-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 54px;
   border-bottom: 1px solid var(--border-dark);
   background: var(--surface);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 20px 0 54px;
+  z-index: 2500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.reader-edge-toggle {
+  position: absolute;
+  top: 11px;
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-dark);
+  background: var(--surface);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2600;
+  box-shadow: 2px 2px 0 var(--manga-shadow-color);
+  transition: opacity 0.25s ease, transform 0.15s ease, background-color 0.2s ease;
+  opacity: 0.85;
+}
+
+.reader-edge-toggle:hover {
+  opacity: 1;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--manga-shadow-color);
+}
+
+.reader-edge-toggle.is-active {
+  background: var(--text);
+  color: var(--text-inverse);
+  border-color: var(--text);
+  opacity: 1;
+}
+
+.reader-panel.is-controls-hidden .reader-edge-toggle {
+  opacity: 0.65;
+}
+
+.reader-panel.is-controls-hidden .reader-edge-toggle:hover {
+  opacity: 1;
 }
 
 .reader-book-info {
@@ -1732,12 +1780,15 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   font-size: 13px;
   color: var(--text-secondary);
   font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .reader-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .reader-close-btn {
@@ -1748,15 +1799,22 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
 }
 
 .reader-close-btn:hover {
-  opacity: 0.7;
+  background: var(--surface-hover);
+  color: #ff4d4f;
 }
 
 .reader-body {
-  flex: 1;
-  position: relative;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   background: #141414;
   overflow: hidden;
   height: 100%;
@@ -1778,39 +1836,36 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   display: none !important;
 }
 
-.ai-provider-pills {
+.ai-select-wrap {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 3px;
 }
 
-.ai-pill {
-  background: transparent;
-  border: 1px solid transparent;
+.ai-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1.5px solid var(--border-dark);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ai-pill:hover {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-
-.ai-pill.is-active {
-  background: var(--surface);
-  border-color: var(--border-dark);
-  color: var(--text);
+  padding: 4px 26px 4px 10px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
   font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
   box-shadow: 1px 1px 0 var(--manga-shadow-color);
+  transition: all 0.15s ease;
+  min-width: 140px;
+}
+
+.ai-select:hover {
+  border-color: var(--text);
+}
+
+.ai-select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .ai-topbar-actions {
@@ -1819,18 +1874,6 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   gap: 4px;
   border-left: 1px solid var(--border);
   padding-left: 6px;
-}
-
-.ai-snip-hint {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px 6px;
-  cursor: help;
-  user-select: none;
 }
 
 .ai-bar-btn {
@@ -1873,121 +1916,90 @@ body:has(#readerPanel:not(.hidden)) .bottom-dock-wrap {
   background: #ffffff;
 }
 
-/* ── Distraction-Free Focus Mode ── */
-.reader-zen-btn.is-active {
-  background: var(--text);
-  color: var(--text-inverse);
-}
-
-.reader-panel.is-zen .reader-topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: rgba(18, 18, 18, 0.92);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.reader-panel.is-zen .reader-title {
-  color: #ffffff;
-}
-
-.reader-panel.is-zen .reader-author {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.reader-panel.is-zen .reader-close-btn {
-  color: #ffffff;
-}
-
-.reader-panel.is-zen .reader-body {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-}
-
-.reader-zen-hud {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 120;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: auto;
-}
-
-.reader-zen-pill {
-  background: rgba(15, 15, 15, 0.88);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  padding: 6px 14px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  font-family: var(--font-mono);
-}
-
-.reader-zen-pill strong {
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.reader-zen-exit-btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-}
-
-.reader-zen-exit-btn:hover {
-  background: #ffffff;
-  color: #000000;
-}
-
-/* Auto-hide controls when idle in Focus Mode */
-.reader-panel.is-zen.is-controls-hidden .reader-topbar {
+/* ── Default Focus Mode & Toggleable Controls ── */
+.reader-panel.is-controls-hidden .reader-topbar {
   opacity: 0;
   pointer-events: none;
   transform: translateY(-100%);
 }
 
-.reader-panel.is-zen.is-controls-hidden .flipbook-toolbar {
+.reader-panel.is-controls-hidden .flipbook-toolbar {
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 40px);
 }
 
-.reader-panel.is-zen.is-controls-hidden .epub-nav {
+.reader-panel.is-controls-hidden .epub-nav {
   opacity: 0;
   pointer-events: none;
 }
 
-.reader-panel.is-zen.is-controls-hidden .reader-zen-hud {
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -100%);
+/* ── Shortcuts Modal ── */
+.shortcuts-modal {
+  max-width: 520px;
 }
 
-.reader-panel.is-zen.is-controls-hidden {
-  cursor: none;
+.shortcuts-modal-body {
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.shortcuts-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  border-bottom: 1.5px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.shortcut-keys {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.shortcut-keys kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-dark);
+  border-radius: 4px;
+  box-shadow: 1px 1.5px 0 var(--manga-shadow-color);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.shortcut-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
 }
 
 /* â”€â”€ PDF Reader Mode Toggle â”€â”€ */

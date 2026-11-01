@@ -42,10 +42,9 @@ const MIN_ZOOM          = 0.5;
 const MAX_ZOOM          = 2.5;
 const ZOOM_STEP         = 0.15;
 
-// Reading Progress & Focus Mode State
+// Reading Progress & Focus Controls State
 let progressSaveTimer   = null;
-let isZenMode           = false;
-let zenIdleTimer        = null;
+let isControlsVisible   = false; // Default: hidden in Focus Mode
 
 // AI Companion State
 let isAiSidebarOpen     = false;
@@ -70,7 +69,7 @@ const AI_PROVIDERS = {
 };
 
 // Application Version & Update State
-const CURRENT_APP_VERSION = 'v2.2.0';
+const CURRENT_APP_VERSION = 'v2.2.1';
 const GITHUB_REPO = 'supremeinori/my-little-library-2';
 let isCheckingUpdate = false;
 
@@ -1287,86 +1286,28 @@ async function renderPdfViewer(blob, book, targetPage = 0) {
   }
 }
 
-function toggleZenMode(forceState) {
+function toggleReaderControls(forceState) {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
 
-  const newState = (forceState !== undefined) ? forceState : !isZenMode;
-  if (newState === isZenMode) return;
-  isZenMode = newState;
+  const nextVisible = (forceState !== undefined) ? forceState : !isControlsVisible;
+  isControlsVisible = nextVisible;
 
-  const zenBtn = $('readerZenBtn');
-  const zenHud = $('readerZenHud');
+  const toggleBtn = $('readerControlsToggle');
 
-  if (isZenMode) {
-    panel.classList.add('is-zen');
+  if (isControlsVisible) {
     panel.classList.remove('is-controls-hidden');
-    if (zenBtn) zenBtn.classList.add('is-active');
-    if (zenHud) zenHud.classList.remove('hidden');
-
-    // Temporarily hide AI companion in zen mode
-    if (isAiSidebarOpen) {
-      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
-        window.chrome.webview.postMessage(JSON.stringify({
-          action: 'setAISidebarVisible',
-          visible: false
-        }));
-      }
+    if (toggleBtn) {
+      toggleBtn.classList.add('is-active');
+      toggleBtn.title = "Sembunyikan Bilah Kontrol";
     }
-
-    // Request Fullscreen
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
-
-    resetZenIdleTimer();
-    panel.addEventListener('mousemove', handleZenMouseMove);
   } else {
-    panel.classList.remove('is-zen');
-    panel.classList.remove('is-controls-hidden');
-    if (zenBtn) zenBtn.classList.remove('is-active');
-    if (zenHud) zenHud.classList.add('hidden');
-
-    if (zenIdleTimer) {
-      clearTimeout(zenIdleTimer);
-      zenIdleTimer = null;
-    }
-    panel.removeEventListener('mousemove', handleZenMouseMove);
-
-    // Restore AI companion if it was open before zen mode
-    if (isAiSidebarOpen) {
-      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
-        window.chrome.webview.postMessage(JSON.stringify({
-          action: 'setAISidebarVisible',
-          visible: true,
-          url: AI_PROVIDERS[currentAiProvider] ? AI_PROVIDERS[currentAiProvider].url : 'https://gemini.google.com/app'
-        }));
-      }
-    }
-
-    // Exit Fullscreen if active
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
+    panel.classList.add('is-controls-hidden');
+    if (toggleBtn) {
+      toggleBtn.classList.remove('is-active');
+      toggleBtn.title = "Tampilkan Bilah Kontrol";
     }
   }
-
-  setTimeout(() => {
-    handleWindowResize();
-  }, 150);
-}
-
-function resetZenIdleTimer() {
-  const panel = $('readerPanel');
-  if (!panel || !isZenMode) return;
-
-  panel.classList.remove('is-controls-hidden');
-
-  if (zenIdleTimer) clearTimeout(zenIdleTimer);
-  zenIdleTimer = setTimeout(() => {
-    if (isZenMode && !panel.classList.contains('hidden')) {
-      panel.classList.add('is-controls-hidden');
-    }
-  }, 2500);
 }
 
 /* ─────────────────────────────────────────────
@@ -1408,13 +1349,10 @@ function switchAiProvider(providerKey) {
   if (!AI_PROVIDERS[providerKey]) return;
   currentAiProvider = providerKey;
 
-  document.querySelectorAll('.ai-pill').forEach(pill => {
-    if (pill.dataset.provider === providerKey) {
-      pill.classList.add('is-active');
-    } else {
-      pill.classList.remove('is-active');
-    }
-  });
+  const select = $('aiProviderSelect');
+  if (select && select.value !== providerKey) {
+    select.value = providerKey;
+  }
 
   const provider = AI_PROVIDERS[providerKey];
 
@@ -1430,12 +1368,6 @@ function syncAiSidebarBounds() {
   // Handled automatically by native Win32 ApplySplitLayout
 }
 
-function handleZenMouseMove() {
-  if (isZenMode) {
-    resetZenIdleTimer();
-  }
-}
-
 function handleReaderKeydown(e) {
   const panel = $('readerPanel');
   if (!panel || panel.classList.contains('hidden')) return;
@@ -1447,10 +1379,10 @@ function handleReaderKeydown(e) {
     return;
   }
 
-  // Toggle Distraction-Free Focus Mode (F)
+  // Toggle Controls (F)
   if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey) {
     e.preventDefault();
-    toggleZenMode();
+    toggleReaderControls();
     return;
   }
 
@@ -1480,8 +1412,9 @@ function handleReaderKeydown(e) {
     else if (currentRendition) currentRendition.prev();
   } else if (e.key === 'Escape') {
     e.preventDefault();
-    if (isZenMode) {
-      toggleZenMode(false);
+    const shortcutsModal = $('shortcutsModal');
+    if (shortcutsModal && !shortcutsModal.classList.contains('hidden')) {
+      closeModal('shortcutsModal');
     } else {
       closeReader();
     }
@@ -1524,7 +1457,18 @@ async function openReader(bookId) {
   currentReaderBlob = fileRecord.blob;
 
   // Reveal reader panel early so viewport geometry and client dimensions are exact
-  $('readerPanel').classList.remove('hidden');
+  const readerPanel = $('readerPanel');
+  readerPanel.classList.remove('hidden');
+
+  // Start in Focus Mode by default (controls hidden)
+  isControlsVisible = false;
+  readerPanel.classList.add('is-controls-hidden');
+  const toggleBtn = $('readerControlsToggle');
+  if (toggleBtn) {
+    toggleBtn.classList.remove('is-active');
+    toggleBtn.title = "Tampilkan Bilah Kontrol";
+  }
+
   document.body.style.overflow = 'hidden';
   document.body.classList.add('reader-open');
   const dockWrap = document.querySelector('.bottom-dock-wrap');
@@ -1648,9 +1592,21 @@ async function openReader(bookId) {
 }
 
 function closeReader() {
-  if (isZenMode) {
-    toggleZenMode(false);
+  const readerPanel = $('readerPanel');
+  if (readerPanel) {
+    readerPanel.classList.remove('is-controls-hidden');
   }
+  isControlsVisible = false;
+  const toggleBtn = $('readerControlsToggle');
+  if (toggleBtn) {
+    toggleBtn.classList.remove('is-active');
+  }
+
+  const shortcutsModal = $('shortcutsModal');
+  if (shortcutsModal && !shortcutsModal.classList.contains('hidden')) {
+    closeModal('shortcutsModal');
+  }
+
   if (isAiSidebarOpen) {
     toggleAiSidebar(false);
   }
@@ -1901,20 +1857,49 @@ document.addEventListener('DOMContentLoaded', () => {
   $('readerCloseBtn').addEventListener('click', closeReader);
   $('readerOverlay').addEventListener('click', closeReader);
 
-  const zenBtn = $('readerZenBtn');
-  if (zenBtn) {
-    zenBtn.addEventListener('click', () => toggleZenMode());
+  // Edge Controls Toggle Button (Left edge eye button)
+  const controlsToggle = $('readerControlsToggle');
+  if (controlsToggle) {
+    controlsToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleReaderControls();
+    });
   }
 
-  const zenExitBtn = $('readerZenExitBtn');
-  if (zenExitBtn) {
-    zenExitBtn.addEventListener('click', () => toggleZenMode(false));
+  // Shortcuts Modal Controls
+  const shortcutsBtn = $('readerShortcutsBtn');
+  if (shortcutsBtn) {
+    shortcutsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openModal('shortcutsModal');
+    });
+  }
+  const shortcutsModalClose = $('shortcutsModalClose');
+  if (shortcutsModalClose) {
+    shortcutsModalClose.addEventListener('click', () => closeModal('shortcutsModal'));
+  }
+  const shortcutsCloseBtn = $('shortcutsCloseBtn');
+  if (shortcutsCloseBtn) {
+    shortcutsCloseBtn.addEventListener('click', () => closeModal('shortcutsModal'));
+  }
+  const shortcutsModal = $('shortcutsModal');
+  if (shortcutsModal) {
+    shortcutsModal.addEventListener('click', (e) => {
+      if (e.target === shortcutsModal) closeModal('shortcutsModal');
+    });
   }
 
   // AI Companion Controls
   const aiToggleBtn = $('readerAiToggleBtn');
   if (aiToggleBtn) {
     aiToggleBtn.addEventListener('click', () => toggleAiSidebar());
+  }
+
+  const aiSelect = $('aiProviderSelect');
+  if (aiSelect) {
+    aiSelect.addEventListener('change', (e) => {
+      switchAiProvider(e.target.value);
+    });
   }
 
   const aiCloseBtn = $('aiCloseBtn');
@@ -1938,19 +1923,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (p) window.open(p.url, '_blank');
     });
   }
-
-  document.querySelectorAll('.ai-pill').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const pKey = tab.dataset.provider;
-      if (pKey) switchAiProvider(pKey);
-    });
-  });
-
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && isZenMode) {
-      toggleZenMode(false);
-    }
-  });
 
   window.addEventListener('beforeunload', () => {
     if (progressSaveTimer && currentReaderBook) {
@@ -1988,18 +1960,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Keyboard shortcut: ESC to close modals or reader
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (!$('readerPanel').classList.contains('hidden')) {
-        if (isZenMode) {
-          toggleZenMode(false);
-        } else {
-          closeReader();
-        }
+      const shortcutsModal = $('shortcutsModal');
+      if (shortcutsModal && !shortcutsModal.classList.contains('hidden')) {
+        closeModal('shortcutsModal');
       } else if (!$('formModal').classList.contains('hidden')) {
         closeModal('formModal');
       } else if (!$('deleteModal').classList.contains('hidden')) {
         closeModal('deleteModal');
       } else if (!$('aboutModal').classList.contains('hidden')) {
         closeModal('aboutModal');
+      } else if (!$('readerPanel').classList.contains('hidden')) {
+        closeReader();
       }
     }
   });
